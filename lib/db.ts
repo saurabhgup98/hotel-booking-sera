@@ -27,7 +27,13 @@ export async function connectDB() {
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(uri).then((m) => m);
+    // Clear the cached promise on failure so a warm serverless instance
+    // retries on the next call instead of replaying the same rejection
+    // forever (e.g. a transient Atlas network-access delay).
+    cached.promise = mongoose.connect(uri).catch((err) => {
+      cached.promise = null;
+      throw err;
+    });
   }
 
   cached.conn = await cached.promise;
