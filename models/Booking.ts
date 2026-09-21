@@ -19,6 +19,7 @@ const bookingSchema = new Schema(
     roomTypeName: { type: String, required: true },
     checkIn: { type: Date, required: true },
     checkOut: { type: Date, required: true },
+    guests: { type: Number, required: true },
     nights: { type: Number, required: true },
     totalAmount: { type: Number, required: true },
     status: { type: String, enum: BOOKING_STATUSES, default: "pending_payment" },

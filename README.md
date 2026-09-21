@@ -1,8 +1,12 @@
-# Dummy Hotel Booking (sandbox)
+# hotel-booking (sandbox, branded "SeraStay Hotels")
 
 A throwaway Next.js + MongoDB Atlas site used to give the website-tracking
 SDK a realistic login/booking/payment flow to inject into and test against.
-Not part of the production APTI product.
+Not part of the production APTI product. The deployed site itself is
+branded as "SeraStay Hotels" and its user-facing copy deliberately reads
+like a real hotel-booking site (no "dummy"/"sandbox"/"test" wording on the
+live pages) — this README and the tables below are the internal-only
+reference for the SDK team.
 
 ## Run locally
 
@@ -47,7 +51,14 @@ matching it (case-insensitively, trimmed) against two lists in
 | `#login-otp-request` | `/login` | "Send OTP" button |
 | `#login-otp-input` | `/login` | OTP field |
 | `#login-otp-submit` | `/login` | "Verify & Continue" button |
-| `#book-now-btn` | `/hotels/[id]` | "Book Now" button — **only present on the first room type**; every room type's button also carries the `book-now-btn` class (a hotel page has 2 such buttons, one per room type, so only one can hold this literal id — use the class to target all of them) |
+| `#hotel-card-{hotelId}` | `/` | a hotel card in the listing grid |
+| `#hotel-details-btn-{hotelId}` | `/` | "View Details →" button on a hotel card |
+| `#back-to-hotels-btn` | `/hotels/[id]` | "← Back to Hotels" button |
+| `#search-checkin-input` | `/hotels/[id]` | shared search-widget check-in date (applies to every room type's booking) |
+| `#search-checkout-input` | `/hotels/[id]` | shared search-widget check-out date |
+| `#search-guests-input` | `/hotels/[id]` | shared search-widget guest count |
+| `#room-type-{roomTypeId}` | `/hotels/[id]` | a room type card |
+| `#book-now-btn` | `/hotels/[id]` | "Book" button — **only present on the first room type**; every room type's button also carries the `book-now-btn` class (a hotel page has 2 such buttons, one per room type, so only one can hold this literal id — use the class to target all of them). Clicking it uses the shared search widget's check-in/check-out/guests above, not per-room date fields. |
 | `#upi-id-input` | `/payment/[bookingId]` | UPI id field |
 | `#payment-submit-btn` | `/payment/[bookingId]` | "Pay Now" button |
 | `#booking-confirmed-banner` | `/booking/[bookingId]` | shown only on a successful payment |

@@ -49,8 +49,11 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="mx-auto max-w-sm space-y-4">
-      <h1 className="text-xl font-bold">Login / Register</h1>
+    <div className="mx-auto max-w-sm space-y-4 rounded-2xl border bg-white p-6 shadow-md">
+      <div>
+        <h1 className="text-xl font-bold text-slate-900">Login or create your account</h1>
+        <p className="mt-1 text-sm text-slate-500">We'll send a one-time code to verify your number.</p>
+      </div>
       {message && <p className="text-sm text-green-700">{message}</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -63,9 +66,13 @@ export default function LoginForm() {
             placeholder="Mobile number"
             value={mobile}
             onChange={(e) => setMobile(e.target.value)}
-            className="w-full rounded border p-2"
+            className="w-full rounded-lg border p-2.5 focus:border-indigo-600 focus:outline-none"
           />
-          <button id="login-otp-request" type="submit" className="w-full rounded bg-blue-600 p-2 text-white">
+          <button
+            id="login-otp-request"
+            type="submit"
+            className="w-full rounded-lg bg-indigo-600 p-2.5 font-medium text-white hover:bg-indigo-700"
+          >
             Send OTP
           </button>
         </form>
@@ -78,9 +85,13 @@ export default function LoginForm() {
             placeholder="Enter OTP"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
-            className="w-full rounded border p-2"
+            className="w-full rounded-lg border p-2.5 focus:border-indigo-600 focus:outline-none"
           />
-          <button id="login-otp-submit" type="submit" className="w-full rounded bg-blue-600 p-2 text-white">
+          <button
+            id="login-otp-submit"
+            type="submit"
+            className="w-full rounded-lg bg-indigo-600 p-2.5 font-medium text-white hover:bg-indigo-700"
+          >
             Verify &amp; Continue
           </button>
         </form>

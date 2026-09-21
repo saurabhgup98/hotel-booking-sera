@@ -19,6 +19,7 @@ const createSchema = z.object({
   roomTypeId: z.string(),
   checkIn: z.string(),
   checkOut: z.string(),
+  guests: z.coerce.number().int().min(1),
 });
 
 export async function POST(request: Request) {
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid booking request" }, { status: 400 });
   }
 
-  const { hotelId, roomTypeId, checkIn, checkOut } = parsed.data;
+  const { hotelId, roomTypeId, checkIn, checkOut, guests } = parsed.data;
   const checkInDate = new Date(checkIn);
   const checkOutDate = new Date(checkOut);
   const nights = Math.round((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -62,6 +63,7 @@ export async function POST(request: Request) {
     roomTypeName: roomType.name,
     checkIn: checkInDate,
     checkOut: checkOutDate,
+    guests,
     nights,
     totalAmount,
     status: "pending_payment",

@@ -28,15 +28,19 @@ export default async function PaymentPage({ params }: { params: { bookingId: str
 
   return (
     <div className="mx-auto max-w-sm space-y-4">
-      <h1 className="text-xl font-bold">Payment</h1>
-      <div className="rounded border bg-white p-4 text-sm">
-        <p>
+      <h1 className="text-xl font-bold text-slate-900">Complete your payment</h1>
+      <div className="rounded-xl border bg-white p-4 text-sm shadow-sm">
+        <p className="font-medium text-slate-900">
           {booking.hotelName} — {booking.roomTypeName}
         </p>
-        <p>{booking.nights} night(s)</p>
-        <p className="mt-1 font-semibold">Total: ₹{booking.totalAmount}</p>
+        <p className="mt-1 text-slate-600">
+          {booking.nights} night(s) · {booking.guests} guest(s)
+        </p>
+        <p className="mt-1 font-semibold text-slate-900">Total: ₹{booking.totalAmount}</p>
       </div>
-      <PaymentForm bookingId={params.bookingId} />
+      <div className="rounded-2xl border bg-white p-6 shadow-md">
+        <PaymentForm bookingId={params.bookingId} />
+      </div>
     </div>
   );
 }

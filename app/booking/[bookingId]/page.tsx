@@ -24,7 +24,7 @@ export default async function BookingResultPage({ params }: { params: { bookingI
       {booking.status === "confirmed" && (
         <div
           id="booking-confirmed-banner"
-          className="rounded border border-green-600 bg-green-50 p-4 text-green-800"
+          className="rounded-xl border border-green-600 bg-green-50 p-4 text-green-800 shadow-sm"
         >
           <h1 className="font-bold">Booking Confirmed</h1>
           <p className="text-sm">
@@ -33,23 +33,23 @@ export default async function BookingResultPage({ params }: { params: { bookingI
         </div>
       )}
       {booking.status === "payment_failed" && (
-        <div id="payment-failed-banner" className="rounded border border-red-600 bg-red-50 p-4 text-red-800">
+        <div id="payment-failed-banner" className="rounded-xl border border-red-600 bg-red-50 p-4 text-red-800 shadow-sm">
           <h1 className="font-bold">Payment Failed</h1>
           <p className="text-sm">Please try again with a different UPI ID.</p>
         </div>
       )}
       {booking.status === "pending_payment" && <p>This booking is still awaiting payment.</p>}
 
-      <div className="rounded border bg-white p-4 text-sm">
-        <p>
+      <div className="rounded-xl border bg-white p-4 text-sm shadow-sm">
+        <p className="font-medium text-slate-900">
           {booking.hotelName} — {booking.roomTypeName}
         </p>
-        <p>
-          {new Date(booking.checkIn).toLocaleDateString()} → {new Date(booking.checkOut).toLocaleDateString()} (
-          {booking.nights} nights)
+        <p className="mt-1 text-slate-600">
+          {new Date(booking.checkIn).toLocaleDateString()} → {new Date(booking.checkOut).toLocaleDateString()} ·{" "}
+          {booking.nights} night(s) · {booking.guests} guest(s)
         </p>
-        <p className="mt-1 font-semibold">Total: ₹{booking.totalAmount}</p>
-        {booking.upiId && <p className="text-xs text-gray-500">UPI ID used: {booking.upiId}</p>}
+        <p className="mt-1 font-semibold text-slate-900">Total: ₹{booking.totalAmount}</p>
+        {booking.upiId && <p className="mt-1 text-xs text-slate-400">UPI ID used: {booking.upiId}</p>}
       </div>
     </div>
   );

@@ -33,6 +33,7 @@ export default function PaymentForm({ bookingId }: { bookingId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
+      <label className="block text-xs font-medium text-slate-500">UPI ID</label>
       <input
         id="upi-id-input"
         type="text"
@@ -40,14 +41,14 @@ export default function PaymentForm({ bookingId }: { bookingId: string }) {
         placeholder="yourname@upi"
         value={upiId}
         onChange={(e) => setUpiId(e.target.value)}
-        className="w-full rounded border p-2"
+        className="w-full rounded-lg border p-2.5 focus:border-indigo-600 focus:outline-none"
       />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         id="payment-submit-btn"
         type="submit"
         disabled={loading}
-        className="w-full rounded bg-green-600 p-2 text-white disabled:opacity-50"
+        className="w-full rounded-lg bg-green-600 p-2.5 font-medium text-white hover:bg-green-700 disabled:opacity-50"
       >
         Pay Now
       </button>
