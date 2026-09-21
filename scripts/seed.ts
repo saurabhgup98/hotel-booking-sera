@@ -11,7 +11,7 @@ async function main() {
     {
       name: "Grand Meridian Hotel",
       city: "Mumbai",
-      description: "A dummy seaside hotel used for SDK tracking tests.",
+      description: "A relaxed seaside stay in the heart of Mumbai, close to the city's best sights and dining.",
       images: [],
       roomTypes: [
         { name: "Deluxe Room", pricePerNight: 4500, capacity: 2, description: "City-view deluxe room." },
@@ -21,7 +21,7 @@ async function main() {
     {
       name: "Highland Retreat",
       city: "Manali",
-      description: "A dummy hill-station hotel used for SDK tracking tests.",
+      description: "A cosy hill-station retreat surrounded by pine forests, perfect for a quiet mountain getaway.",
       images: [],
       roomTypes: [
         { name: "Deluxe Room", pricePerNight: 3800, capacity: 2, description: "Mountain-view deluxe room." },
