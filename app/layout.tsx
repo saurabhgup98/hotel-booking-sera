@@ -17,6 +17,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en">
+      <head>
+        <script
+          async
+          src="https://text-grams-rose-glad.trycloudflare.com/sdk/v1/aptili.js?key=apk_KgEd9J7vrHSnbt3tbeDL5J3bxfg-qYhk&siteId=8e13eea4-1457-440a-a64a-07a9cf809d10"
+        />
+      </head>
       <body className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
         <header className="sticky top-0 z-10 border-b bg-white shadow-sm">
           <div className="mx-auto flex max-w-5xl items-center justify-between p-4">
