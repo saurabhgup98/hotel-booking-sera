@@ -20,7 +20,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <script
           async
-          src="https://peer-cable-pumps-salaries.trycloudflare.com/sdk/v1/aptili.js?key=apk_KgEd9J7vrHSnbt3tbeDL5J3bxfg-qYhk&siteId=8e13eea4-1457-440a-a64a-07a9cf809d10"
+          src="https://sdk.aptiinsights.com/sdk/v1/aptili.js?key=apk_KgEd9J7vrHSnbt3tbeDL5J3bxfg-qYhk&siteId=8e13eea4-1457-440a-a64a-07a9cf809d10"
         />
       </head>
       <body className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
