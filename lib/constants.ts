@@ -4,6 +4,12 @@ export const FIXED_OTP = "123456";
 
 export const AUTH_COOKIE_NAME = "hb_session";
 
+// localStorage key for the home page's search filters (check-in/out, guests,
+// location). Deliberately persisted client-side rather than in React state
+// so it survives navigating to a hotel page and back, and a full page
+// refresh — cleared only by the "Clear filters" button or on logout.
+export const HOME_FILTERS_STORAGE_KEY = "hb_home_filters";
+
 // Mock-payment decision lists. A UPI ID typed at checkout is matched
 // (case-insensitively, trimmed) against these two lists to deterministically
 // produce a success or failure outcome, so testers can trigger either case

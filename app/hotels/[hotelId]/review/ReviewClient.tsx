@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function ReviewClient({
   hotelId,
@@ -18,8 +18,10 @@ export default function ReviewClient({
   guests: number;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const autoConfirmRan = useRef(false);
 
   const backParams = new URLSearchParams({ checkIn, checkOut, guests: String(guests) });
   const backHref = `/hotels/${hotelId}?${backParams.toString()}`;
@@ -34,7 +36,22 @@ export default function ReviewClient({
         body: JSON.stringify({ hotelId, roomTypeId, checkIn, checkOut, guests }),
       });
       if (res.status === 401) {
-        router.push(`/login?next=/hotels/${hotelId}/review?roomTypeId=${roomTypeId}&checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}`);
+        // Send the visitor to log in, then straight back through this exact
+        // URL (properly encoded this time — a raw, unencoded `next` value
+        // gets its own `&checkIn=...` etc. parsed as top-level /login query
+        // params instead of part of `next`, truncating the redirect target).
+        // autoConfirm=1 tells the effect below to retry this POST
+        // automatically once we're back, instead of requiring a second
+        // manual click after login.
+        const reviewParams = new URLSearchParams({
+          roomTypeId,
+          checkIn,
+          checkOut,
+          guests: String(guests),
+          autoConfirm: "1",
+        });
+        const next = `/hotels/${hotelId}/review?${reviewParams.toString()}`;
+        router.push(`/login?next=${encodeURIComponent(next)}`);
         return;
       }
       const data = await res.json();
@@ -47,6 +64,18 @@ export default function ReviewClient({
       setLoading(false);
     }
   }
+
+  // If we just came back from a login triggered by this same confirm click,
+  // finish the job automatically instead of dropping the user back on this
+  // page waiting for a second click.
+  useEffect(() => {
+    if (autoConfirmRan.current) return;
+    if (searchParams.get("autoConfirm") === "1") {
+      autoConfirmRan.current = true;
+      handleConfirm();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="space-y-3">

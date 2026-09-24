@@ -32,9 +32,6 @@ export default function HeaderNav({ session }: { session: Session }) {
       {session ? (
         <>
           <NavItem href="/bookings" label="My Bookings" id="nav-bookings-link" />
-          <span id="nav-mobile-number" className="text-xs text-slate-400 sm:text-sm">
-            {session.mobile}
-          </span>
           <LogoutButton />
         </>
       ) : (

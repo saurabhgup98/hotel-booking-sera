@@ -115,7 +115,7 @@ export default function HotelDetailClient({ hotel }: { hotel: HotelPlain }) {
                 onClick={() => handleBook(rt._id)}
                 className="book-now-btn rounded-lg bg-indigo-600 px-5 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
               >
-                Review Booking
+                Book Now
               </button>
             </div>
           </div>

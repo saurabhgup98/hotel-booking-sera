@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import Link from "next/link";
+import { HOME_FILTERS_STORAGE_KEY } from "@/lib/constants";
 
 type RoomType = { pricePerNight: number };
 type HotelPlain = {
@@ -18,6 +19,41 @@ export default function HotelListClient({ hotels }: { hotels: HotelPlain[] }) {
   const [guests, setGuests] = useState("");
   const [location, setLocation] = useState("");
   const [filterError, setFilterError] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Restore filters from localStorage on mount — they should survive a
+  // refresh or navigating to a hotel page and back, only reset by "Clear
+  // filters" or logout (see LogoutButton.tsx).
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(HOME_FILTERS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setCheckIn(parsed.checkIn ?? "");
+        setCheckOut(parsed.checkOut ?? "");
+        setGuests(parsed.guests ?? "");
+        setLocation(parsed.location ?? "");
+      }
+    } catch {}
+    setHydrated(true);
+  }, []);
+
+  // Persist on every change, once the initial restore above has run (avoids
+  // overwriting saved filters with the empty initial state before restore).
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(HOME_FILTERS_STORAGE_KEY, JSON.stringify({ checkIn, checkOut, guests, location }));
+    } catch {}
+  }, [hydrated, checkIn, checkOut, guests, location]);
+
+  function handleClearFilters() {
+    setCheckIn("");
+    setCheckOut("");
+    setGuests("");
+    setLocation("");
+    setFilterError(null);
+  }
 
   const cities = useMemo(
     () => Array.from(new Set(hotels.map((h) => h.city))).sort(),
@@ -103,8 +139,18 @@ export default function HotelListClient({ hotels }: { hotels: HotelPlain[] }) {
             </select>
           </div>
         </div>
+        <div className="mt-3 flex items-center justify-between">
+          <button
+            id="home-filter-clear-btn"
+            type="button"
+            onClick={handleClearFilters}
+            className="text-sm font-medium text-slate-500 hover:text-indigo-600"
+          >
+            Clear filters
+          </button>
+        </div>
         {filterError && (
-          <p id="home-filter-error" className="mt-3 text-sm text-red-600">
+          <p id="home-filter-error" className="mt-2 text-sm text-red-600">
             {filterError}
           </p>
         )}

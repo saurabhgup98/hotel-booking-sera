@@ -26,18 +26,25 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
         <header className="sticky top-0 z-10 border-b bg-white shadow-sm">
           <div className="mx-auto flex max-w-5xl items-center justify-between p-4">
-            <Link href="/" className="flex items-center gap-2 font-bold text-indigo-600">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="h-6 w-6"
-                aria-hidden="true"
-              >
-                <path d="M3 21V9.5a1 1 0 0 1 .4-.8l8-6a1 1 0 0 1 1.2 0l8 6a1 1 0 0 1 .4.8V21a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-5H10v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z" />
-              </svg>
-              <span className="text-lg">SeraStay</span>
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link href="/" className="flex items-center gap-2 font-bold text-indigo-600">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="h-6 w-6"
+                  aria-hidden="true"
+                >
+                  <path d="M3 21V9.5a1 1 0 0 1 .4-.8l8-6a1 1 0 0 1 1.2 0l8 6a1 1 0 0 1 .4.8V21a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-5H10v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z" />
+                </svg>
+                <span className="text-lg">SeraStay</span>
+              </Link>
+              {session && (
+                <span id="nav-mobile-number" className="text-xs text-slate-400 sm:text-sm">
+                  {session.mobile}
+                </span>
+              )}
+            </div>
             <HeaderNav session={session ? { mobile: session.mobile } : null} />
           </div>
         </header>

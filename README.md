@@ -56,12 +56,13 @@ matching it (case-insensitively, trimmed) against two lists in
 | `#login-otp-submit` | `/login` | "Verify & Continue" button |
 | `#nav-home-link` | header | "Home" nav item — a link, or non-clickable active text on `/` |
 | `#nav-bookings-link` | header, when logged in | "My Bookings" nav item — a link, or non-clickable active text on `/bookings` |
-| `#nav-mobile-number` | header, when logged in | logged-in user's mobile number, always visible (no longer hidden on small screens) |
+| `#nav-mobile-number` | header, when logged in | logged-in user's mobile number, shown to the right of the logo, always visible (no longer hidden on small screens) |
 | `#home-filter-checkin-input` | `/` | home-page filter: check-in date |
 | `#home-filter-checkout-input` | `/` | home-page filter: check-out date |
 | `#home-filter-guests-input` | `/` | home-page filter: guest count |
 | `#home-filter-location-select` | `/` | home-page filter: location (city), default "All Locations" shows all hotels |
 | `#home-filter-error` | `/` | shown when "View Details" is clicked before check-in/check-out/guests are filled |
+| `#home-filter-clear-btn` | `/` | "Clear filters" button — resets and clears the persisted filter values |
 | `#hotel-card-{hotelId}` | `/` | a hotel card in the listing grid |
 | `#hotel-details-btn-{hotelId}` | `/` | "View Details →" button on a hotel card — carries the home-page filter values forward via query string once they're filled |
 | `#back-to-hotels-btn` | `/hotels/[id]` | "← Back to Hotels" button |
@@ -71,7 +72,7 @@ matching it (case-insensitively, trimmed) against two lists in
 | `#search-checkout-input` | `/hotels/[id]` | shared search-widget check-out date |
 | `#search-guests-input` | `/hotels/[id]` | shared search-widget guest count |
 | `#room-type-{roomTypeId}` | `/hotels/[id]` | a room type card |
-| `#book-now-btn` | `/hotels/[id]` | "Review Booking" button — **only present on the first room type**; every room type's button also carries the `book-now-btn` class (a hotel page has 2 such buttons, one per room type, so only one can hold this literal id — use the class to target all of them). Clicking it navigates to the `/hotels/[id]/review` preview step — it no longer creates a booking directly. |
+| `#book-now-btn` | `/hotels/[id]` | "Book Now" button — **only present on the first room type**; every room type's button also carries the `book-now-btn` class (a hotel page has 2 such buttons, one per room type, so only one can hold this literal id — use the class to target all of them). Clicking it navigates to the `/hotels/[id]/review` preview step — it no longer creates a booking directly. |
 | `#confirm-booking-btn` | `/hotels/[id]/review` | "Confirm & Pay" button — this is the point a `pending_payment` Booking is actually created |
 | `#review-back-btn` | `/hotels/[id]/review` | "← Change room or dates" link, back to the hotel page with filters preserved |
 | `#upi-id-input` | `/payment/[bookingId]` | UPI id field |
