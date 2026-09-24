@@ -4,7 +4,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { verifySession } from "@/lib/auth";
 import { AUTH_COOKIE_NAME } from "@/lib/constants";
-import LogoutButton from "@/components/LogoutButton";
+import HeaderNav from "@/components/HeaderNav";
 
 export const metadata: Metadata = {
   title: "SeraStay Hotels",
@@ -38,27 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               </svg>
               <span className="text-lg">SeraStay</span>
             </Link>
-            <nav className="flex items-center gap-5 text-sm">
-              <Link href="/" className="text-slate-600 hover:text-indigo-600">
-                Home
-              </Link>
-              {session ? (
-                <>
-                  <Link href="/bookings" className="text-slate-600 hover:text-indigo-600">
-                    My Bookings
-                  </Link>
-                  <span className="hidden text-slate-400 sm:inline">{session.mobile}</span>
-                  <LogoutButton />
-                </>
-              ) : (
-                <Link
-                  href="/login"
-                  className="rounded-full bg-indigo-600 px-4 py-1.5 font-medium text-white hover:bg-indigo-700"
-                >
-                  Login
-                </Link>
-              )}
-            </nav>
+            <HeaderNav session={session ? { mobile: session.mobile } : null} />
           </div>
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 p-4">{children}</main>

@@ -33,9 +33,31 @@ export default async function HotelDetailPage({ params }: { params: { hotelId: s
           {hotel.city}
         </p>
         <p className="mt-2 text-slate-600">{hotel.description}</p>
+        {hotel.address && (
+          <p id="hotel-address" className="mt-1 text-sm text-slate-500">
+            {hotel.address}
+          </p>
+        )}
       </div>
 
       <HotelDetailClient hotel={JSON.parse(JSON.stringify(hotel))} />
+
+      {hotel.reviews?.length > 0 && (
+        <div id="hotel-reviews-section" className="space-y-3">
+          <h2 className="text-lg font-semibold text-slate-900">Guest Reviews</h2>
+          <div className="space-y-3">
+            {hotel.reviews.map((review: any) => (
+              <div key={review._id?.toString()} className="review-item rounded-xl border bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium text-slate-900">{review.reviewerName}</p>
+                  <p className="text-sm font-medium text-amber-600">{"★".repeat(review.rating)}</p>
+                </div>
+                <p className="mt-1 text-sm text-slate-600">{review.comment}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { signSession } from "@/lib/auth";
 import { FIXED_OTP, AUTH_COOKIE_NAME } from "@/lib/constants";
 
 const schema = z.object({
-  mobile: z.string().trim().min(6).max(15),
+  mobile: z.string().trim().min(6).max(15).regex(/^\d+$/, "Mobile number must contain digits only"),
   otp: z.string(),
 });
 

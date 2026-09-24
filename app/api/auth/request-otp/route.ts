@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 const schema = z.object({
-  mobile: z.string().trim().min(6).max(15),
+  mobile: z.string().trim().min(6).max(15).regex(/^\d+$/, "Mobile number must contain digits only"),
 });
 
 export async function POST(request: Request) {
@@ -13,6 +13,7 @@ export async function POST(request: Request) {
   }
 
   // Mocked: no real SMS is sent and nothing is written to the DB — the OTP
-  // is a fixed constant checked in /api/auth/verify-otp.
-  return NextResponse.json({ message: "OTP sent — use 123456" });
+  // is a fixed constant checked in /api/auth/verify-otp. The value itself is
+  // intentionally not echoed here — see README.md for the test OTP.
+  return NextResponse.json({ message: "OTP sent to your mobile number." });
 }

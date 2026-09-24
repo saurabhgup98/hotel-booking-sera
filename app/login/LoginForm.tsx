@@ -62,10 +62,11 @@ export default function LoginForm() {
           <input
             id="login-mobile-input"
             type="tel"
+            inputMode="numeric"
             required
             placeholder="Mobile number"
             value={mobile}
-            onChange={(e) => setMobile(e.target.value)}
+            onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 15))}
             className="w-full rounded-lg border p-2.5 focus:border-indigo-600 focus:outline-none"
           />
           <button

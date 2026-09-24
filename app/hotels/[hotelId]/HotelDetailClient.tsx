@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type RoomType = {
   _id: string;
@@ -19,15 +19,13 @@ type HotelPlain = {
 
 export default function HotelDetailClient({ hotel }: { hotel: HotelPlain }) {
   const router = useRouter();
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
-  const [guests, setGuests] = useState(2);
+  const searchParams = useSearchParams();
+  const [checkIn, setCheckIn] = useState(searchParams.get("checkIn") ?? "");
+  const [checkOut, setCheckOut] = useState(searchParams.get("checkOut") ?? "");
+  const [guests, setGuests] = useState(Number(searchParams.get("guests")) || 2);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [bookingError, setBookingError] = useState<string | null>(null);
-  const [loadingRoomId, setLoadingRoomId] = useState<string | null>(null);
 
-  async function handleBook(roomTypeId: string) {
-    setBookingError(null);
+  function handleBook(roomTypeId: string) {
     setSearchError(null);
 
     if (!checkIn || !checkOut) {
@@ -39,26 +37,8 @@ export default function HotelDetailClient({ hotel }: { hotel: HotelPlain }) {
       return;
     }
 
-    setLoadingRoomId(roomTypeId);
-    try {
-      const res = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hotelId: hotel._id, roomTypeId, checkIn, checkOut, guests }),
-      });
-      if (res.status === 401) {
-        router.push(`/login?next=/hotels/${hotel._id}`);
-        return;
-      }
-      const data = await res.json();
-      if (!res.ok) {
-        setBookingError(data.error || "Failed to create booking");
-        return;
-      }
-      router.push(`/payment/${data.bookingId}`);
-    } finally {
-      setLoadingRoomId(null);
-    }
+    const params = new URLSearchParams({ roomTypeId, checkIn, checkOut, guests: String(guests) });
+    router.push(`/hotels/${hotel._id}/review?${params.toString()}`);
   }
 
   return (
@@ -133,16 +113,14 @@ export default function HotelDetailClient({ hotel }: { hotel: HotelPlain }) {
                 // (first room type) or the shared class (all room types).
                 id={idx === 0 ? "book-now-btn" : undefined}
                 onClick={() => handleBook(rt._id)}
-                disabled={loadingRoomId === rt._id}
                 className="book-now-btn rounded-lg bg-indigo-600 px-5 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
               >
-                {loadingRoomId === rt._id ? "Booking…" : "Book"}
+                Review Booking
               </button>
             </div>
           </div>
         ))}
       </div>
-      {bookingError && <p className="text-sm text-red-600">{bookingError}</p>}
     </div>
   );
 }
