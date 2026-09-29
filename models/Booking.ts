@@ -21,9 +21,11 @@ const bookingSchema = new Schema(
     checkOut: { type: Date, required: true },
     guests: { type: Number, required: true },
     nights: { type: Number, required: true },
-    // totalAmount is what the guest actually pays (after any coupon);
-    // originalAmount is nights × price before it. Bookings created before
-    // coupons existed have no originalAmount — treat it as totalAmount.
+    // totalAmount is what the guest actually pays (after today's checkout
+    // discount, see lib/todaysOffer.ts); originalAmount is nights × price
+    // before it. Older bookings have no originalAmount — treat it as
+    // totalAmount. couponCode is only set on bookings from the earlier
+    // coupon-code flow.
     totalAmount: { type: Number, required: true },
     originalAmount: { type: Number },
     couponCode: { type: String },

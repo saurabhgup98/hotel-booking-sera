@@ -254,7 +254,7 @@ export default function HotelDetailClient({ hotel, children }: { hotel: HotelPla
                 %
               </span>
               <p>
-                Pick a room and apply the coupon received on WhatsApp to see your actual discount at payment.
+                Pick a room — today&apos;s discount is applied automatically at checkout.
               </p>
             </div>
           )}
@@ -301,11 +301,11 @@ function WhatsAppCouponPopup({ lead, onOk }: { lead: OfferLead; onOk: () => void
           Check your WhatsApp
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-sera-muted">
-          We&apos;ve sent your discount and coupon code to{" "}
+          We&apos;ve sent your offer details to{" "}
           <span id="whatsapp-popup-number" className="whitespace-nowrap font-semibold text-sera-ink">
             {formatMobile(lead.whatsapp)}
           </span>
-          . Apply it on the next step to get your offer.
+          . Your discount is applied automatically on the next step.
         </p>
         <button
           id="whatsapp-popup-ok-btn"

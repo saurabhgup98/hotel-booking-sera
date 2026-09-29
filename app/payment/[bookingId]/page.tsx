@@ -54,11 +54,13 @@ export default async function PaymentPage({ params }: { params: { bookingId: str
             <p id="payment-amount" className="text-4xl font-bold tabular-nums">
               {formatINR(booking.totalAmount)}
             </p>
-            {booking.couponCode && booking.discountAmount > 0 && (
+            {booking.discountAmount > 0 && (
               <p className="text-sm text-white/80">
                 <span className="line-through">{formatINR(originalAmount)}</span>{" "}
                 <span className="font-semibold text-[#9FE0BC]">
-                  {booking.couponCode} saved you {formatINR(booking.discountAmount)}
+                  {booking.couponCode
+                    ? `${booking.couponCode} saved you ${formatINR(booking.discountAmount)}`
+                    : `${booking.discountPercent}% off · you save ${formatINR(booking.discountAmount)}`}
                 </span>
               </p>
             )}

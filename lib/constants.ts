@@ -23,8 +23,8 @@ export const OFFER_LEAD_STORAGE_KEY = "sera_offer_lead";
 export const FILTERS_UPDATED_EVENT = "sera:filters-updated";
 
 // Discount advertised in the "Today's Offer" popup. Display-only: the real
-// discount comes from the Coupon collection when a code is applied at review
-// (the marketer creates the same code in APTI, which sends it on WhatsApp).
+// checkout discount comes from lib/todaysOffer.ts and is applied
+// automatically at review.
 export const OFFER_DISCOUNT_PERCENT = 5;
 
 // Room photos are keyed by room type name (every hotel has the same two room

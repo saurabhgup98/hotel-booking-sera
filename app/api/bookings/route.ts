@@ -6,7 +6,7 @@ import Hotel from "@/models/Hotel";
 import Booking from "@/models/Booking";
 import { verifySession } from "@/lib/auth";
 import { AUTH_COOKIE_NAME } from "@/lib/constants";
-import { applyCoupon } from "@/lib/coupons";
+import { applyTodaysOffer, getTodaysOffer } from "@/lib/todaysOffer";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,6 @@ const createSchema = z.object({
   checkIn: z.string(),
   checkOut: z.string(),
   guests: z.coerce.number().int().min(1),
-  couponCode: z.string().trim().optional(),
 });
 
 export async function POST(request: Request) {
@@ -36,7 +35,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid booking request" }, { status: 400 });
   }
 
-  const { hotelId, roomTypeId, checkIn, checkOut, guests, couponCode } = parsed.data;
+  const { hotelId, roomTypeId, checkIn, checkOut, guests } = parsed.data;
   const checkInDate = new Date(checkIn);
   const checkOutDate = new Date(checkOut);
   const nights = Math.round((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -57,17 +56,10 @@ export async function POST(request: Request) {
 
   const originalAmount = nights * roomType.pricePerNight;
 
-  // Recomputed here rather than trusting the review page's preview. A code
-  // that was valid on the review page but isn't any more fails loudly
-  // instead of silently charging the full price.
-  let coupon = null;
-  if (couponCode) {
-    coupon = await applyCoupon(couponCode, originalAmount);
-    if (!coupon) {
-      return NextResponse.json({ error: "This coupon code is invalid or has expired" }, { status: 400 });
-    }
-  }
-  const totalAmount = originalAmount - (coupon?.discountAmount ?? 0);
+  // Today's checkout discount is looked up here, server-side, rather than
+  // taken from the review page — the browser never decides the price.
+  const offer = await getTodaysOffer();
+  const { discountAmount, payable: totalAmount } = applyTodaysOffer(originalAmount, offer);
 
   const booking = await Booking.create({
     userId: session.userId,
@@ -81,9 +73,8 @@ export async function POST(request: Request) {
     nights,
     totalAmount,
     originalAmount,
-    couponCode: coupon?.code,
-    discountPercent: coupon?.discountPercent,
-    discountAmount: coupon?.discountAmount ?? 0,
+    discountPercent: discountAmount > 0 ? offer?.discountPercent : undefined,
+    discountAmount,
     status: "pending_payment",
     paymentResult: "pending",
   });

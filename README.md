@@ -13,7 +13,7 @@ reference for the SDK team.
 ```bash
 npm install
 cp .env.example .env.local   # fill in MONGODB_URI and JWT_SECRET
-npm run seed                 # seeds/renames 4 "Sera …" hotels (2 per city) + the SERA5 coupon; safe to re-run
+npm run seed                 # seeds/renames 4 "Sera …" hotels (2 per city); safe to re-run
 npm run dev                  # http://localhost:3000
 ```
 
@@ -36,7 +36,7 @@ separate register step, no name required):
 The live UI no longer echoes this value in the "OTP sent" response message —
 `123456` (documented here) is the only value `verify-otp` accepts.
 
-## Offer / WhatsApp coupon flow (demo)
+## Offer / WhatsApp flow (demo)
 
 1. First visit to any page except login/payment/booking pages → **10 seconds after
    landing**, a non-dismissable offer modal (name, WhatsApp number, dates, guests,
@@ -47,13 +47,15 @@ The live UI no longer echoes this value in the "OTP sent" response message —
    `sera_offer_lead`, not cleared on logout — clear it by hand to replay the demo).
 2. The visitor's **first** room "Book Now" shows a "Check your WhatsApp" popup
    before going to review. Later Book Now clicks (another room, going back) skip it.
-3. Review page has a coupon field. Codes live in this site's `coupons`
-   collection (seeded: **`SERA5` = 5%**) and are validated/applied here —
-   `POST /api/coupons/validate` previews, `POST /api/bookings` re-validates and
-   stores `originalAmount`, `couponCode`, `discountAmount`, `totalAmount` (payable).
+3. Review page applies **today's checkout discount automatically** — no coupon
+   field. It's currently a fixed **4%** in `lib/todaysOffer.ts` (`getTodaysOffer()`),
+   which will later fetch the brand's discount-of-the-day from APTI. It's read
+   server-side by both the review page and `POST /api/bookings` (which stores
+   `originalAmount`, `discountPercent`, `discountAmount`, `totalAmount` = payable),
+   so the browser never decides the price.
 
 **This site never sends WhatsApp messages.** APTI does, off the SDK events these
-screens produce — the marketer creates the same coupon code in APTI.
+screens produce.
 
 ## Mock payment
 
@@ -109,8 +111,7 @@ matching it (case-insensitively, trimmed) against two lists in
 | `#offer-popup` / `#offer-book-now-btn` | overlay | "Today's Offer" popup / its Book Now |
 | `#whatsapp-coupon-popup` | `/hotels/[id]` | "Check your WhatsApp" popup — appears only on the visitor's first room Book Now; carries `data-guest-name` and `data-whatsapp-number` |
 | `#whatsapp-popup-number` / `#whatsapp-popup-ok-btn` | `/hotels/[id]` | number shown in that popup / its OK button |
-| `#coupon-code-input` / `#coupon-apply-btn` / `#coupon-remove-btn` | `/hotels/[id]/review` | coupon field and buttons |
-| `#coupon-success-message` / `#coupon-error` | `/hotels/[id]/review` | coupon applied / rejected message |
+| `#review-offer-applied` | `/hotels/[id]/review` | "4% discount applied — you save ₹…" banner (only when there's an offer) |
 | `#review-discount-amount` / `#review-total-amount` | `/hotels/[id]/review` | discount line / total payable |
 | `#review-guest-name` / `#review-guest-whatsapp` | `/hotels/[id]/review` | guest details from the offer form |
-| `#payment-amount` | `/payment/[bookingId]` | amount payable (after coupon) |
+| `#payment-amount` | `/payment/[bookingId]` | amount payable (after today's discount) |

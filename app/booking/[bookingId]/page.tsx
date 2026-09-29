@@ -79,9 +79,9 @@ export default async function BookingResultPage({ params }: { params: { bookingI
               <dd className="text-right font-semibold text-sera-ink">{row.value}</dd>
             </div>
           ))}
-          {booking.couponCode && booking.discountAmount > 0 && (
+          {booking.discountAmount > 0 && (
             <div className="flex justify-between gap-4 text-[#1F7A45]">
-              <dt>Coupon {booking.couponCode}</dt>
+              <dt>{booking.couponCode ? `Coupon ${booking.couponCode}` : `Today's offer (${booking.discountPercent}% off)`}</dt>
               <dd className="font-semibold">
                 −{formatINR(booking.discountAmount)} <span className="font-normal text-sera-muted line-through">{formatINR(originalAmount)}</span>
               </dd>

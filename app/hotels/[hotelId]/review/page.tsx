@@ -5,6 +5,7 @@ import Hotel from "@/models/Hotel";
 import { FALLBACK_HOTEL_IMAGE, formatStayDate } from "@/lib/constants";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import GuestDetailsCard from "@/components/GuestDetailsCard";
+import { applyTodaysOffer, getTodaysOffer } from "@/lib/todaysOffer";
 import ReviewClient from "./ReviewClient";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,10 @@ export default async function BookingReviewPage({
     (new Date(checkOut!).getTime() - new Date(checkIn!).getTime()) / (1000 * 60 * 60 * 24)
   );
   const totalAmount = nights * roomType.pricePerNight;
+  // Same lookup POST /api/bookings does, so the price shown here is exactly
+  // what the booking is created at, for whichever room was picked.
+  const offer = await getTodaysOffer();
+  const { discountAmount, payable } = applyTodaysOffer(totalAmount, offer);
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 pt-8 sm:px-6">
@@ -87,6 +92,9 @@ export default async function BookingReviewPage({
           pricePerNight={roomType.pricePerNight}
           nights={nights}
           totalAmount={totalAmount}
+          discountPercent={discountAmount > 0 ? offer!.discountPercent : 0}
+          discountAmount={discountAmount}
+          payable={payable}
           checkIn={checkIn!}
           checkOut={checkOut!}
           guests={guestsNum}

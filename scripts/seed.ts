@@ -4,7 +4,6 @@ config({ path: ".env.local" });
 import { connectDB } from "../lib/db";
 import { unsplash } from "../lib/constants";
 import Hotel from "../models/Hotel";
-import Coupon from "../models/Coupon";
 
 async function main() {
   await connectDB();
@@ -123,15 +122,6 @@ async function main() {
       console.log(`Created hotel: ${hotel.name} (${hotel.city})`);
     }
   }
-
-  // Must match the code the marketer configures in APTI (which is what the
-  // guest receives on WhatsApp) — this site only validates and applies it.
-  await Coupon.findOneAndUpdate(
-    { code: "SERA5" },
-    { $set: { code: "SERA5", discountPercent: 5, description: "Today's offer — 5% off your stay", active: true } },
-    { upsert: true }
-  );
-  console.log("Upserted coupon: SERA5 (5%)");
 
   console.log("Seed complete.");
   process.exit(0);
