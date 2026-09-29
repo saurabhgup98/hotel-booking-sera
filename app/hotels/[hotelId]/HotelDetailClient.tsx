@@ -6,7 +6,6 @@ import {
   FALLBACK_HOTEL_IMAGE,
   FILTERS_UPDATED_EVENT,
   HOME_FILTERS_STORAGE_KEY,
-  OFFER_DISCOUNT_PERCENT,
   ROOM_TYPE_IMAGES,
   formatINR,
   formatMobile,
@@ -255,8 +254,7 @@ export default function HotelDetailClient({ hotel, children }: { hotel: HotelPla
                 %
               </span>
               <p>
-                <span className="font-semibold">{OFFER_DISCOUNT_PERCENT}% offer unlocked.</span> Pick a room and apply
-                your coupon at checkout.
+                Pick a room and apply the coupon received on WhatsApp to see your actual discount at payment.
               </p>
             </div>
           )}
