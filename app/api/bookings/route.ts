@@ -6,6 +6,7 @@ import Hotel from "@/models/Hotel";
 import Booking from "@/models/Booking";
 import { verifySession } from "@/lib/auth";
 import { AUTH_COOKIE_NAME } from "@/lib/constants";
+import { applyCoupon } from "@/lib/coupons";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ const createSchema = z.object({
   checkIn: z.string(),
   checkOut: z.string(),
   guests: z.coerce.number().int().min(1),
+  couponCode: z.string().trim().optional(),
 });
 
 export async function POST(request: Request) {
@@ -34,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid booking request" }, { status: 400 });
   }
 
-  const { hotelId, roomTypeId, checkIn, checkOut, guests } = parsed.data;
+  const { hotelId, roomTypeId, checkIn, checkOut, guests, couponCode } = parsed.data;
   const checkInDate = new Date(checkIn);
   const checkOutDate = new Date(checkOut);
   const nights = Math.round((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -53,7 +55,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Room type not found" }, { status: 404 });
   }
 
-  const totalAmount = nights * roomType.pricePerNight;
+  const originalAmount = nights * roomType.pricePerNight;
+
+  // Recomputed here rather than trusting the review page's preview. A code
+  // that was valid on the review page but isn't any more fails loudly
+  // instead of silently charging the full price.
+  let coupon = null;
+  if (couponCode) {
+    coupon = await applyCoupon(couponCode, originalAmount);
+    if (!coupon) {
+      return NextResponse.json({ error: "This coupon code is invalid or has expired" }, { status: 400 });
+    }
+  }
+  const totalAmount = originalAmount - (coupon?.discountAmount ?? 0);
 
   const booking = await Booking.create({
     userId: session.userId,
@@ -66,6 +80,10 @@ export async function POST(request: Request) {
     guests,
     nights,
     totalAmount,
+    originalAmount,
+    couponCode: coupon?.code,
+    discountPercent: coupon?.discountPercent,
+    discountAmount: coupon?.discountAmount ?? 0,
     status: "pending_payment",
     paymentResult: "pending",
   });

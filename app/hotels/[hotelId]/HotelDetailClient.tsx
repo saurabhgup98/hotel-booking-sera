@@ -1,7 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  FALLBACK_HOTEL_IMAGE,
+  FILTERS_UPDATED_EVENT,
+  HOME_FILTERS_STORAGE_KEY,
+  OFFER_DISCOUNT_PERCENT,
+  ROOM_TYPE_IMAGES,
+  formatINR,
+  formatMobile,
+} from "@/lib/constants";
+import { readOfferLead, todayISO, updateOfferLead, type OfferLead } from "@/lib/offerLead";
+import { WhatsAppGlyph } from "@/components/OfferFlow";
 
 type RoomType = {
   _id: string;
@@ -14,22 +25,59 @@ type RoomType = {
 type HotelPlain = {
   _id: string;
   name: string;
+  description: string;
+  amenities?: string[];
   roomTypes: RoomType[];
 };
 
-export default function HotelDetailClient({ hotel }: { hotel: HotelPlain }) {
+const inputClass =
+  "h-12 w-full rounded-xl border border-[#D9D1C2] bg-white px-3.5 text-[15px] text-sera-ink focus:border-sera-forest focus:outline-none focus:ring-2 focus:ring-sera-forest/15";
+
+function nightsBetween(checkIn: string, checkOut: string) {
+  if (!checkIn || !checkOut) return 0;
+  const n = Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000);
+  return n > 0 ? n : 0;
+}
+
+export default function HotelDetailClient({ hotel, children }: { hotel: HotelPlain; children?: ReactNode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [checkIn, setCheckIn] = useState(searchParams.get("checkIn") ?? "");
   const [checkOut, setCheckOut] = useState(searchParams.get("checkOut") ?? "");
   const [guests, setGuests] = useState(Number(searchParams.get("guests")) || 2);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [lead, setLead] = useState<OfferLead | null>(null);
+  // Set while the one-time "check your WhatsApp" popup is open — the review
+  // URL to continue to once the visitor clicks OK.
+  const [pendingReviewHref, setPendingReviewHref] = useState<string | null>(null);
+
+  // No dates in the URL (e.g. the visitor landed here directly) → fall back
+  // to the home-page filters, which the landing offer form also fills. Also
+  // re-applied if that form is submitted while this page is open.
+  useEffect(() => {
+    function fillFromSavedFilters() {
+      setLead(readOfferLead());
+      if (searchParams.get("checkIn")) return;
+      try {
+        const saved = JSON.parse(localStorage.getItem(HOME_FILTERS_STORAGE_KEY) || "null");
+        if (saved?.checkIn) setCheckIn(saved.checkIn);
+        if (saved?.checkOut) setCheckOut(saved.checkOut);
+        if (Number(saved?.guests)) setGuests(Number(saved.guests));
+      } catch {}
+    }
+    fillFromSavedFilters();
+    window.addEventListener(FILTERS_UPDATED_EVENT, fillFromSavedFilters);
+    return () => window.removeEventListener(FILTERS_UPDATED_EVENT, fillFromSavedFilters);
+  }, [searchParams]);
+
+  const nights = nightsBetween(checkIn, checkOut);
 
   function handleBook(roomTypeId: string) {
     setSearchError(null);
 
     if (!checkIn || !checkOut) {
-      setSearchError("Please select check-in and check-out dates above.");
+      setSearchError("Please select check-in and check-out dates.");
+      document.getElementById("stay-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     if (new Date(checkOut) <= new Date(checkIn)) {
@@ -38,37 +86,149 @@ export default function HotelDetailClient({ hotel }: { hotel: HotelPlain }) {
     }
 
     const params = new URLSearchParams({ roomTypeId, checkIn, checkOut, guests: String(guests) });
-    router.push(`/hotels/${hotel._id}/review?${params.toString()}`);
+    const href = `/hotels/${hotel._id}/review?${params.toString()}`;
+
+    // Only the visitor's very first room "Book Now" shows this popup — APTI
+    // sends the coupon on WhatsApp off it. Going back and picking another
+    // room goes straight to review, so no second message is triggered.
+    const currentLead = readOfferLead();
+    if (currentLead && !currentLead.couponSent) {
+      setLead(currentLead);
+      setPendingReviewHref(href);
+      return;
+    }
+    router.push(href);
+  }
+
+  function handleWhatsAppOk() {
+    updateOfferLead({ couponSent: true });
+    const href = pendingReviewHref;
+    setPendingReviewHref(null);
+    if (href) router.push(href);
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border bg-white p-4 shadow-md sm:p-5">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Check-in</label>
-            <input
-              id="search-checkin-input"
-              type="date"
-              required
-              value={checkIn}
-              onChange={(e) => setCheckIn(e.target.value)}
-              className="w-full rounded-lg border p-2 focus:border-indigo-600 focus:outline-none"
-            />
+    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="min-w-0 space-y-10">
+        <section className="space-y-3">
+          <h2 className="font-display text-2xl text-sera-ink">About this stay</h2>
+          <p className="leading-relaxed text-sera-muted">{hotel.description}</p>
+        </section>
+
+        {hotel.amenities && hotel.amenities.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="font-display text-2xl text-sera-ink">Amenities</h2>
+            <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+              {hotel.amenities.map((a) => (
+                <li key={a} className="flex items-center gap-3 rounded-2xl border border-sera-line bg-white px-4 py-3 text-sm font-medium text-sera-ink">
+                  <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-sera-mint text-sera-forest">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  </span>
+                  {a}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <section id="rooms-section" className="scroll-mt-24 space-y-4">
+          <h2 className="font-display text-2xl text-sera-ink">Choose your room</h2>
+          {hotel.roomTypes.map((rt, idx) => (
+            <div
+              key={rt._id}
+              id={`room-type-${rt._id}`}
+              className="flex flex-col overflow-hidden rounded-3xl border border-sera-line bg-white transition hover:shadow-lg hover:shadow-black/5 sm:flex-row"
+            >
+              <img
+                src={ROOM_TYPE_IMAGES[rt.name] || FALLBACK_HOTEL_IMAGE}
+                alt={rt.name}
+                className="h-48 w-full object-cover sm:h-auto sm:w-60"
+              />
+              <div className="flex flex-1 flex-col justify-between gap-4 p-5 sm:flex-row sm:items-end">
+                <div className="space-y-2">
+                  <h3 className="font-display text-xl text-sera-ink">{rt.name}</h3>
+                  <p className="text-sm text-sera-muted">{rt.description}</p>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sera-cream px-3 py-1 text-xs font-semibold text-sera-muted ring-1 ring-sera-line">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    Up to {rt.capacity} guests
+                  </span>
+                </div>
+                <div className="flex flex-col items-start gap-2 sm:items-end">
+                  <p className="text-2xl font-bold text-sera-ink">
+                    {formatINR(rt.pricePerNight)}
+                    <span className="text-sm font-normal text-sera-muted"> / night</span>
+                  </p>
+                  {nights > 0 && (
+                    <p className="text-xs text-sera-muted">
+                      {formatINR(rt.pricePerNight * nights)} for {nights} {nights === 1 ? "night" : "nights"}
+                    </p>
+                  )}
+                  <button
+                    // Only the first room type's button carries the literal
+                    // #book-now-btn id (a hotel page has 2 "Book" buttons, one
+                    // per room type, and DOM ids must be unique per page) —
+                    // every instance also carries the `book-now-btn` class, so
+                    // an SDK EventRule can target either the documented id
+                    // (first room type) or the shared class (all room types).
+                    id={idx === 0 ? "book-now-btn" : undefined}
+                    type="button"
+                    onClick={() => handleBook(rt._id)}
+                    className="book-now-btn mt-1 rounded-xl bg-sera-forest px-6 py-3 text-sm font-semibold text-white hover:bg-sera-forest-dark"
+                  >
+                    Book Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {children}
+      </div>
+
+      <aside className="lg:sticky lg:top-24 lg:self-start">
+        <div id="stay-card" className="space-y-4 rounded-3xl border border-sera-line bg-white p-6 shadow-xl shadow-black/5">
+          <h2 className="font-display text-xl text-sera-ink">Your stay</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="search-checkin-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-sera-muted">
+                Check-in
+              </label>
+              <input
+                id="search-checkin-input"
+                type="date"
+                required
+                min={todayISO()}
+                value={checkIn}
+                onChange={(e) => setCheckIn(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="search-checkout-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-sera-muted">
+                Check-out
+              </label>
+              <input
+                id="search-checkout-input"
+                type="date"
+                required
+                min={checkIn || todayISO()}
+                value={checkOut}
+                onChange={(e) => setCheckOut(e.target.value)}
+                className={inputClass}
+              />
+            </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Check-out</label>
-            <input
-              id="search-checkout-input"
-              type="date"
-              required
-              value={checkOut}
-              onChange={(e) => setCheckOut(e.target.value)}
-              className="w-full rounded-lg border p-2 focus:border-indigo-600 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Guests</label>
+            <label htmlFor="search-guests-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-sera-muted">
+              Guests
+            </label>
             <input
               id="search-guests-input"
               type="number"
@@ -76,50 +236,87 @@ export default function HotelDetailClient({ hotel }: { hotel: HotelPlain }) {
               required
               value={guests}
               onChange={(e) => setGuests(Math.max(1, Number(e.target.value) || 1))}
-              className="w-full rounded-lg border p-2 focus:border-indigo-600 focus:outline-none"
+              className={inputClass}
             />
           </div>
-        </div>
-        {searchError && <p className="mt-3 text-sm text-red-600">{searchError}</p>}
-      </div>
-
-      <div className="space-y-4">
-        {hotel.roomTypes.map((rt, idx) => (
-          <div
-            key={rt._id}
-            id={`room-type-${rt._id}`}
-            className="flex flex-col justify-between gap-4 rounded-xl border bg-white p-5 shadow-sm transition hover:shadow-md sm:flex-row sm:items-center"
-          >
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-slate-900">{rt.name}</h2>
-                <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                  Up to {rt.capacity} guests
-                </span>
-              </div>
-              <p className="text-sm text-slate-600">{rt.description}</p>
-            </div>
-            <div className="flex flex-col items-start gap-2 sm:items-end">
-              <p className="text-2xl font-bold text-slate-900">
-                ₹{rt.pricePerNight}
-                <span className="text-sm font-normal text-slate-500"> /night</span>
+          {searchError && (
+            <p role="alert" className="text-sm font-medium text-red-700">
+              {searchError}
+            </p>
+          )}
+          {nights > 0 && (
+            <p className="text-sm text-sera-muted">
+              {nights} {nights === 1 ? "night" : "nights"} · {guests} {guests === 1 ? "guest" : "guests"}
+            </p>
+          )}
+          {lead && (
+            <div className="flex gap-3 rounded-2xl bg-sera-brass-soft p-4 text-sm text-[#6E4C18]">
+              <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-white font-display text-sm font-semibold text-sera-brass">
+                %
+              </span>
+              <p>
+                <span className="font-semibold">{OFFER_DISCOUNT_PERCENT}% offer unlocked.</span> Pick a room and apply
+                your coupon at checkout.
               </p>
-              <button
-                // Only the first room type's button carries the literal
-                // #book-now-btn id (a hotel page has 2 "Book" buttons, one
-                // per room type, and DOM ids must be unique per page) —
-                // every instance also carries the `book-now-btn` class, so
-                // an SDK EventRule can target either the documented id
-                // (first room type) or the shared class (all room types).
-                id={idx === 0 ? "book-now-btn" : undefined}
-                onClick={() => handleBook(rt._id)}
-                className="book-now-btn rounded-lg bg-indigo-600 px-5 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-              >
-                Book Now
-              </button>
             </div>
-          </div>
-        ))}
+          )}
+          <a
+            href="#rooms-section"
+            className="block rounded-xl border border-sera-forest py-3 text-center text-sm font-semibold text-sera-forest hover:bg-sera-mint"
+          >
+            See rooms
+          </a>
+        </div>
+      </aside>
+
+      {pendingReviewHref && lead && <WhatsAppCouponPopup lead={lead} onOk={handleWhatsAppOk} />}
+    </div>
+  );
+}
+
+function WhatsAppCouponPopup({ lead, onOk }: { lead: OfferLead; onOk: () => void }) {
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-sera-ink/60 p-4 backdrop-blur-sm animate-fade-in">
+      <div
+        id="whatsapp-coupon-popup"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="whatsapp-popup-title"
+        // Exposed for SDK extractors (APTI sends the coupon message off this
+        // popup appearing): who to message and on which number.
+        data-guest-name={lead.name}
+        data-whatsapp-number={lead.whatsapp}
+        className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-2xl animate-pop-in"
+      >
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#E3F5EA] text-[#1F8F4E]">
+          <WhatsAppGlyph className="h-8 w-8" />
+        </span>
+        <h2 id="whatsapp-popup-title" className="mt-5 font-display text-2xl text-sera-ink">
+          Check your WhatsApp
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-sera-muted">
+          We&apos;ve sent your discount and coupon code to{" "}
+          <span id="whatsapp-popup-number" className="whitespace-nowrap font-semibold text-sera-ink">
+            {formatMobile(lead.whatsapp)}
+          </span>
+          . Apply it on the next step to get your offer.
+        </p>
+        <button
+          id="whatsapp-popup-ok-btn"
+          type="button"
+          onClick={onOk}
+          className="mt-6 h-12 w-full rounded-xl bg-sera-forest text-[15px] font-semibold text-white hover:bg-sera-forest-dark"
+        >
+          OK
+        </button>
       </div>
     </div>
   );

@@ -21,7 +21,14 @@ const bookingSchema = new Schema(
     checkOut: { type: Date, required: true },
     guests: { type: Number, required: true },
     nights: { type: Number, required: true },
+    // totalAmount is what the guest actually pays (after any coupon);
+    // originalAmount is nights × price before it. Bookings created before
+    // coupons existed have no originalAmount — treat it as totalAmount.
     totalAmount: { type: Number, required: true },
+    originalAmount: { type: Number },
+    couponCode: { type: String },
+    discountPercent: { type: Number },
+    discountAmount: { type: Number, default: 0 },
     status: { type: String, enum: BOOKING_STATUSES, default: "pending_payment" },
     upiId: { type: String },
     paymentResult: { type: String, enum: ["approved", "rejected", "pending"], default: "pending" },

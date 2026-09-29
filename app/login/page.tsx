@@ -4,7 +4,9 @@ import LoginForm from "./LoginForm";
 export default function LoginPage() {
   return (
     <Suspense fallback={<p>Loading…</p>}>
-      <LoginForm />
+      <div className="px-4">
+        <LoginForm />
+      </div>
     </Suspense>
   );
 }

@@ -1,9 +1,9 @@
-# hotel-booking (sandbox, branded "SeraStay Hotels")
+# hotel-booking (sandbox, branded "Sera Hotels and Resorts")
 
 A throwaway Next.js + MongoDB Atlas site used to give the website-tracking
 SDK a realistic login/booking/payment flow to inject into and test against.
 Not part of the production APTI product. The deployed site itself is
-branded as "SeraStay Hotels" and its user-facing copy deliberately reads
+branded as "Sera Hotels and Resorts" and its user-facing copy deliberately reads
 like a real hotel-booking site (no "dummy"/"sandbox"/"test" wording on the
 live pages) — this README and the tables below are the internal-only
 reference for the SDK team.
@@ -13,7 +13,7 @@ reference for the SDK team.
 ```bash
 npm install
 cp .env.example .env.local   # fill in MONGODB_URI and JWT_SECRET
-npm run seed                 # one-time: seeds 4 hotels x 2 room types (2 per city)
+npm run seed                 # seeds/renames 4 "Sera …" hotels (2 per city) + the SERA5 coupon; safe to re-run
 npm run dev                  # http://localhost:3000
 ```
 
@@ -35,6 +35,25 @@ separate register step, no name required):
 
 The live UI no longer echoes this value in the "OTP sent" response message —
 `123456` (documented here) is the only value `verify-otp` accepts.
+
+## Offer / WhatsApp coupon flow (demo)
+
+1. First visit to any page except login/payment/booking pages → **10 seconds after
+   landing**, a non-dismissable offer modal (name, WhatsApp number, dates, guests,
+   location). The WhatsApp number must be OTP-verified (Send OTP → `123456`, any
+   other OTP fails) — verifying also logs the visitor in (same `/api/auth/*` as `/login`). Submitting it
+   also fills the home-page filter form, then shows a "Creating your offer" loader
+   and a "Today's Offer 5% off" popup. Once per visitor (localStorage
+   `sera_offer_lead`, not cleared on logout — clear it by hand to replay the demo).
+2. The visitor's **first** room "Book Now" shows a "Check your WhatsApp" popup
+   before going to review. Later Book Now clicks (another room, going back) skip it.
+3. Review page has a coupon field. Codes live in this site's `coupons`
+   collection (seeded: **`SERA5` = 5%**) and are validated/applied here —
+   `POST /api/coupons/validate` previews, `POST /api/bookings` re-validates and
+   stores `originalAmount`, `couponCode`, `discountAmount`, `totalAmount` (payable).
+
+**This site never sends WhatsApp messages.** APTI does, off the SDK events these
+screens produce — the marketer creates the same coupon code in APTI.
 
 ## Mock payment
 
@@ -73,10 +92,25 @@ matching it (case-insensitively, trimmed) against two lists in
 | `#search-guests-input` | `/hotels/[id]` | shared search-widget guest count |
 | `#room-type-{roomTypeId}` | `/hotels/[id]` | a room type card |
 | `#book-now-btn` | `/hotels/[id]` | "Book Now" button — **only present on the first room type**; every room type's button also carries the `book-now-btn` class (a hotel page has 2 such buttons, one per room type, so only one can hold this literal id — use the class to target all of them). Clicking it navigates to the `/hotels/[id]/review` preview step — it no longer creates a booking directly. |
-| `#confirm-booking-btn` | `/hotels/[id]/review` | "Confirm & Pay" button — this is the point a `pending_payment` Booking is actually created |
+| `#confirm-booking-btn` | `/hotels/[id]/review` | "Pay Now · ₹…" button — this is the point a `pending_payment` Booking is actually created |
 | `#review-back-btn` | `/hotels/[id]/review` | "← Change room or dates" link, back to the hotel page with filters preserved |
 | `#upi-id-input` | `/payment/[bookingId]` | UPI id field |
 | `#payment-submit-btn` | `/payment/[bookingId]` | "Pay Now" button |
 | `#booking-confirmed-banner` | `/booking/[bookingId]` | shown only on a successful payment |
 | `#payment-failed-banner` | `/booking/[bookingId]` | shown only on a rejected payment |
 | `#logout-btn` | header, when logged in | logout button |
+| `#offer-lead-form` | offer modal (any page, first visit) | the offer details form |
+| `#offer-name-input` / `#offer-whatsapp-input` | offer modal | guest name / WhatsApp number (not validated) |
+| `#offer-checkin-input` / `#offer-checkout-input` / `#offer-guests-input` / `#offer-location-select` | offer modal | stay details (copied into the home-page filters on submit) |
+| `#offer-send-otp-btn` / `#offer-otp-input` / `#offer-verify-otp-btn` | offer modal | send OTP / OTP field / verify (only `123456` passes) |
+| `#offer-otp-verified` / `#offer-otp-error` | offer modal | shown once verified / on a wrong OTP |
+| `#offer-submit-btn` | offer modal | "Curate my offer" submit (requires a verified number) |
+| `#offer-creating-loader` | overlay | "Creating your offer…" loader |
+| `#offer-popup` / `#offer-book-now-btn` | overlay | "Today's Offer" popup / its Book Now |
+| `#whatsapp-coupon-popup` | `/hotels/[id]` | "Check your WhatsApp" popup — appears only on the visitor's first room Book Now; carries `data-guest-name` and `data-whatsapp-number` |
+| `#whatsapp-popup-number` / `#whatsapp-popup-ok-btn` | `/hotels/[id]` | number shown in that popup / its OK button |
+| `#coupon-code-input` / `#coupon-apply-btn` / `#coupon-remove-btn` | `/hotels/[id]/review` | coupon field and buttons |
+| `#coupon-success-message` / `#coupon-error` | `/hotels/[id]/review` | coupon applied / rejected message |
+| `#review-discount-amount` / `#review-total-amount` | `/hotels/[id]/review` | discount line / total payable |
+| `#review-guest-name` / `#review-guest-whatsapp` | `/hotels/[id]/review` | guest details from the offer form |
+| `#payment-amount` | `/payment/[bookingId]` | amount payable (after coupon) |

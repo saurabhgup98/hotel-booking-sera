@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import Hotel from "@/models/Hotel";
+import { FALLBACK_HOTEL_IMAGE, formatStayDate } from "@/lib/constants";
+import CheckoutSteps from "@/components/CheckoutSteps";
+import GuestDetailsCard from "@/components/GuestDetailsCard";
 import ReviewClient from "./ReviewClient";
 
 export const dynamic = "force-dynamic";
@@ -44,28 +47,51 @@ export default async function BookingReviewPage({
   const totalAmount = nights * roomType.pricePerNight;
 
   return (
-    <div className="mx-auto max-w-sm space-y-4">
-      <h1 className="text-xl font-bold text-slate-900">Review your booking</h1>
-      <div className="rounded-xl border bg-white p-4 text-sm shadow-sm">
-        <p className="font-medium text-slate-900">
-          {hotel.name} — {roomType.name}
-        </p>
-        <p className="mt-1 text-slate-600">{hotel.city}</p>
-        <p className="mt-2 text-slate-600">
-          {new Date(checkIn!).toLocaleDateString()} → {new Date(checkOut!).toLocaleDateString()}
-        </p>
-        <p className="mt-1 text-slate-600">
-          {nights} night(s) · {guestsNum} guest(s)
-        </p>
-        <p className="mt-2 font-semibold text-slate-900">Total: ₹{totalAmount}</p>
+    <div className="mx-auto max-w-6xl space-y-8 px-4 pt-8 sm:px-6">
+      <CheckoutSteps current={2} />
+      <h1 className="font-display text-4xl text-sera-ink">Review your booking</h1>
+
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="min-w-0 space-y-6">
+          <div className="flex flex-col overflow-hidden rounded-3xl border border-sera-line bg-white sm:flex-row">
+            <img src={hotel.images?.[0] || FALLBACK_HOTEL_IMAGE} alt={hotel.name} className="h-44 w-full object-cover sm:h-auto sm:w-56" />
+            <div className="space-y-1.5 p-6">
+              <p className="text-xs font-semibold tracking-[0.2em] text-sera-brass">{hotel.city.toUpperCase()}</p>
+              <h2 className="font-display text-2xl text-sera-ink">{hotel.name}</h2>
+              <p className="font-semibold text-sera-ink">{roomType.name}</p>
+              {hotel.address && <p className="text-sm text-sera-muted">{hotel.address}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-sera-line bg-sera-line sm:grid-cols-4">
+            {[
+              { label: "Check-in", value: formatStayDate(checkIn!) },
+              { label: "Check-out", value: formatStayDate(checkOut!) },
+              { label: "Nights", value: String(nights) },
+              { label: "Guests", value: String(guestsNum) },
+            ].map((item) => (
+              <div key={item.label} className="bg-white p-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-sera-muted">{item.label}</p>
+                <p className="mt-1 font-semibold text-sera-ink">{item.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <GuestDetailsCard />
+        </div>
+
+        <ReviewClient
+          hotelId={hotelId}
+          roomTypeId={roomType._id.toString()}
+          roomTypeName={roomType.name}
+          pricePerNight={roomType.pricePerNight}
+          nights={nights}
+          totalAmount={totalAmount}
+          checkIn={checkIn!}
+          checkOut={checkOut!}
+          guests={guestsNum}
+        />
       </div>
-      <ReviewClient
-        hotelId={hotelId}
-        roomTypeId={roomType._id.toString()}
-        checkIn={checkIn!}
-        checkOut={checkOut!}
-        guests={guestsNum}
-      />
     </div>
   );
 }

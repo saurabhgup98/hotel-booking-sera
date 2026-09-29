@@ -26,7 +26,9 @@ const hotelSchema = new Schema(
     city: { type: String, required: true },
     description: { type: String, default: "" },
     address: { type: String, default: "" },
+    // First image is the cover (home card + gallery hero).
     images: { type: [String], default: [] },
+    amenities: { type: [String], default: [] },
     roomTypes: { type: [roomTypeSchema], default: [] },
     reviews: { type: [reviewSchema], default: [] },
   },

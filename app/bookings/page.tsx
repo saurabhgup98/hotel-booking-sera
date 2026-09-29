@@ -3,37 +3,64 @@ import { cookies } from "next/headers";
 import { connectDB } from "@/lib/db";
 import Booking from "@/models/Booking";
 import { verifySession } from "@/lib/auth";
-import { AUTH_COOKIE_NAME } from "@/lib/constants";
+import { AUTH_COOKIE_NAME, formatINR, formatStayDate } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
+
+const STATUS_STYLES: Record<string, { label: string; className: string }> = {
+  confirmed: { label: "Confirmed", className: "bg-sera-mint text-sera-forest" },
+  pending_payment: { label: "Awaiting payment", className: "bg-sera-brass-soft text-[#6E4C18]" },
+  payment_failed: { label: "Payment failed", className: "bg-red-50 text-red-700" },
+  cancelled: { label: "Cancelled", className: "bg-sera-cream text-sera-muted" },
+};
 
 export default async function BookingsPage() {
   const token = cookies().get(AUTH_COOKIE_NAME)?.value;
   const session = token ? await verifySession(token) : null;
   if (!session) {
-    return <p className="text-slate-600">Please log in to see your bookings.</p>;
+    return <p className="mx-auto max-w-4xl px-4 pt-10 text-sera-muted sm:px-6">Please log in to see your bookings.</p>;
   }
 
   await connectDB();
   const bookings = await Booking.find({ userId: session.userId }).sort({ createdAt: -1 }).lean<any[]>();
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-slate-900">My Bookings</h1>
-      {bookings.length === 0 && <p className="text-sm text-slate-500">No bookings yet.</p>}
+    <div className="mx-auto max-w-4xl space-y-6 px-4 pt-10 sm:px-6">
+      <h1 className="font-display text-4xl text-sera-ink">My Bookings</h1>
+      {bookings.length === 0 && (
+        <div className="rounded-3xl border border-sera-line bg-white p-8 text-center">
+          <p className="text-sera-muted">No bookings yet.</p>
+          <Link href="/" className="mt-3 inline-block font-semibold text-sera-forest hover:underline">
+            Find a stay →
+          </Link>
+        </div>
+      )}
       <ul className="space-y-3">
-        {bookings.map((b) => (
-          <li key={b._id.toString()} className="rounded-xl border bg-white p-4 shadow-sm">
-            <Link href={`/booking/${b._id.toString()}`} className="font-medium text-slate-900 hover:text-indigo-600">
-              {b.hotelName} — {b.roomTypeName}
-            </Link>
-            <p className="mt-1 text-sm text-slate-500">
-              {new Date(b.checkIn).toLocaleDateString()} → {new Date(b.checkOut).toLocaleDateString()} ·{" "}
-              {b.guests} guest(s) · Status:{" "}
-              <span className="font-medium text-slate-700">{b.status}</span>
-            </p>
-          </li>
-        ))}
+        {bookings.map((b) => {
+          const status = STATUS_STYLES[b.status] ?? { label: b.status, className: "bg-sera-cream text-sera-muted" };
+          return (
+            <li key={b._id.toString()}>
+              <Link
+                href={`/booking/${b._id.toString()}`}
+                className="flex flex-col gap-3 rounded-2xl border border-sera-line bg-white p-5 hover:border-sera-forest sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="font-semibold text-sera-ink">
+                    {b.hotelName} · {b.roomTypeName}
+                  </p>
+                  <p className="mt-1 text-sm text-sera-muted">
+                    {formatStayDate(b.checkIn, false)} – {formatStayDate(b.checkOut)} · {b.guests}{" "}
+                    {b.guests === 1 ? "guest" : "guests"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-sera-ink">{formatINR(b.totalAmount)}</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}>{status.label}</span>
+                </div>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

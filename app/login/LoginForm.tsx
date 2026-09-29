@@ -49,13 +49,13 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="mx-auto max-w-sm space-y-4 rounded-2xl border bg-white p-6 shadow-md">
+    <div className="mx-auto mt-12 max-w-sm space-y-5 rounded-3xl border border-sera-line bg-white p-7 shadow-xl shadow-black/5">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">Login or create your account</h1>
-        <p className="mt-1 text-sm text-slate-500">We'll send a one-time code to verify your number.</p>
+        <h1 className="font-display text-2xl text-sera-ink">Login or create your account</h1>
+        <p className="mt-1 text-sm text-sera-muted">We'll send a one-time code to verify your number.</p>
       </div>
-      {message && <p className="text-sm text-green-700">{message}</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {message && <p className="text-sm text-[#1F7A45]">{message}</p>}
+      {error && <p className="text-sm font-medium text-red-700">{error}</p>}
 
       {step === "mobile" ? (
         <form onSubmit={handleRequestOtp} className="space-y-3">
@@ -67,12 +67,12 @@ export default function LoginForm() {
             placeholder="Mobile number"
             value={mobile}
             onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 15))}
-            className="w-full rounded-lg border p-2.5 focus:border-indigo-600 focus:outline-none"
+            className="h-12 w-full rounded-xl border border-[#D9D1C2] px-3.5 text-[15px] focus:border-sera-forest focus:outline-none focus:ring-2 focus:ring-sera-forest/15"
           />
           <button
             id="login-otp-request"
             type="submit"
-            className="w-full rounded-lg bg-indigo-600 p-2.5 font-medium text-white hover:bg-indigo-700"
+            className="h-12 w-full rounded-xl bg-sera-forest font-semibold text-white hover:bg-sera-forest-dark"
           >
             Send OTP
           </button>
@@ -86,12 +86,12 @@ export default function LoginForm() {
             placeholder="Enter OTP"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
-            className="w-full rounded-lg border p-2.5 focus:border-indigo-600 focus:outline-none"
+            className="h-12 w-full rounded-xl border border-[#D9D1C2] px-3.5 text-[15px] focus:border-sera-forest focus:outline-none focus:ring-2 focus:ring-sera-forest/15"
           />
           <button
             id="login-otp-submit"
             type="submit"
-            className="w-full rounded-lg bg-indigo-600 p-2.5 font-medium text-white hover:bg-indigo-700"
+            className="h-12 w-full rounded-xl bg-sera-forest font-semibold text-white hover:bg-sera-forest-dark"
           >
             Verify &amp; Continue
           </button>
