@@ -7,6 +7,7 @@ import { verifySession } from "@/lib/auth";
 import { AUTH_COOKIE_NAME, formatINR, formatStayDate } from "@/lib/constants";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import SeraLogo from "@/components/SeraLogo";
+import { getPropertyType } from "@/lib/propertyType";
 import PaymentForm from "./PaymentForm";
 
 export const dynamic = "force-dynamic";
@@ -30,9 +31,15 @@ export default async function PaymentPage({ params }: { params: { bookingId: str
 
   const originalAmount = booking.originalAmount ?? booking.totalAmount;
   const bookingRef = `SH-${params.bookingId.slice(-6).toUpperCase()}`;
+  const propertyType = await getPropertyType(booking.hotelId);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 px-4 pt-8 sm:px-6">
+    <div
+      id="payment-page"
+      data-property-type={propertyType}
+      data-booking-id={params.bookingId}
+      className="mx-auto max-w-4xl space-y-8 px-4 pt-8 sm:px-6"
+    >
       <CheckoutSteps current={3} />
 
       <div className="grid overflow-hidden rounded-3xl border border-sera-line bg-white shadow-2xl shadow-black/10 md:grid-cols-[300px_1fr]">

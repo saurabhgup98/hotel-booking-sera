@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import Hotel from "@/models/Hotel";
-import { FALLBACK_HOTEL_IMAGE, formatStayDate } from "@/lib/constants";
+import { DEFAULT_PROPERTY_TYPE, FALLBACK_HOTEL_IMAGE, formatStayDate } from "@/lib/constants";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import GuestDetailsCard from "@/components/GuestDetailsCard";
 import { applyTodaysOffer, getTodaysOffer } from "@/lib/todaysOffer";
@@ -52,7 +52,11 @@ export default async function BookingReviewPage({
   const { discountAmount, payable, label } = applyTodaysOffer(totalAmount, offer);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-4 pt-8 sm:px-6">
+    <div
+      id="review-page"
+      data-property-type={hotel.propertyType ?? DEFAULT_PROPERTY_TYPE}
+      className="mx-auto max-w-6xl space-y-8 px-4 pt-8 sm:px-6"
+    >
       <CheckoutSteps current={2} />
       <h1 className="font-display text-4xl text-sera-ink">Review your booking</h1>
 

@@ -6,6 +6,7 @@ import { connectDB } from "@/lib/db";
 import Booking from "@/models/Booking";
 import { verifySession } from "@/lib/auth";
 import { AUTH_COOKIE_NAME, formatINR, formatStayDate } from "@/lib/constants";
+import { getPropertyType } from "@/lib/propertyType";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export default async function BookingResultPage({ params }: { params: { bookingI
 
   const bookingRef = `SH-${params.bookingId.slice(-6).toUpperCase()}`;
   const originalAmount = booking.originalAmount ?? booking.totalAmount;
+  const propertyType = await getPropertyType(booking.hotelId);
 
   const rows: { label: string; value: string }[] = [
     { label: "Booking ref", value: bookingRef },
@@ -36,9 +38,23 @@ export default async function BookingResultPage({ params }: { params: { bookingI
   ];
 
   return (
-    <div className="mx-auto max-w-xl space-y-6 px-4 pt-10 sm:px-6">
+    <div
+      id="booking-page"
+      data-property-type={propertyType}
+      data-booking-id={params.bookingId}
+      className="mx-auto max-w-xl space-y-6 px-4 pt-10 sm:px-6"
+    >
+      {/* The banners carry the values APTI's payment_completed / payment_failed
+          rules read when they appear (plain numbers, no ₹ formatting). */}
       {booking.status === "confirmed" && (
-        <div id="booking-confirmed-banner" className="rounded-3xl border border-sera-line bg-white p-8 text-center shadow-xl shadow-black/5">
+        <div
+          id="booking-confirmed-banner"
+          data-property-type={propertyType}
+          data-booking-id={params.bookingId}
+          data-property-name={booking.hotelName}
+          data-amount-paid={booking.totalAmount}
+          className="rounded-3xl border border-sera-line bg-white p-8 text-center shadow-xl shadow-black/5"
+        >
           <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sera-mint text-sera-forest">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8" aria-hidden="true">
               <path d="M20 6 9 17l-5-5" />
@@ -52,7 +68,13 @@ export default async function BookingResultPage({ params }: { params: { bookingI
         </div>
       )}
       {booking.status === "payment_failed" && (
-        <div id="payment-failed-banner" className="rounded-3xl border border-red-200 bg-white p-8 text-center shadow-xl shadow-black/5">
+        <div
+          id="payment-failed-banner"
+          data-property-type={propertyType}
+          data-booking-id={params.bookingId}
+          data-amount={booking.totalAmount}
+          className="rounded-3xl border border-red-200 bg-white p-8 text-center shadow-xl shadow-black/5"
+        >
           <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8" aria-hidden="true">
               <path d="M18 6 6 18M6 6l12 12" />

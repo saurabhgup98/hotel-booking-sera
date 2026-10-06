@@ -133,6 +133,7 @@ export default function PaymentForm({ bookingId, amount }: { bookingId: string; 
         <button
           id="payment-submit-btn"
           type="submit"
+          data-amount={amount}
           disabled={processing}
           className="w-full rounded-xl bg-sera-forest py-3.5 text-base font-semibold text-white hover:bg-sera-forest-dark disabled:opacity-60"
         >
