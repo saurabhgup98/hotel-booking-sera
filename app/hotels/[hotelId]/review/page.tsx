@@ -49,7 +49,7 @@ export default async function BookingReviewPage({
   // Same lookup POST /api/bookings does, so the price shown here is exactly
   // what the booking is created at, for whichever room was picked.
   const offer = await getTodaysOffer();
-  const { discountAmount, payable } = applyTodaysOffer(totalAmount, offer);
+  const { discountAmount, payable, label } = applyTodaysOffer(totalAmount, offer);
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 pt-8 sm:px-6">
@@ -92,7 +92,7 @@ export default async function BookingReviewPage({
           pricePerNight={roomType.pricePerNight}
           nights={nights}
           totalAmount={totalAmount}
-          discountPercent={discountAmount > 0 ? offer!.discountPercent : 0}
+          discountLabel={label}
           discountAmount={discountAmount}
           payable={payable}
           checkIn={checkIn!}

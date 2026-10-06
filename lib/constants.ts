@@ -11,9 +11,9 @@ export const AUTH_COOKIE_NAME = "hb_session";
 export const HOME_FILTERS_STORAGE_KEY = "hb_home_filters";
 
 // localStorage key for the landing-page offer lead (name, WhatsApp number,
-// stay details) plus the flags that make the offer flow once-per-visitor:
-// `offerSeen` (the "Today's Offer" popup was acknowledged) and `couponSent`
-// (the first room "Book Now" already showed the "check your WhatsApp" popup).
+// stay details) plus two once-per-day markers: `offerSeenOn` (the date the
+// "Today's Offer" popup was last acknowledged) and `couponSentOn` (the date
+// the first room "Book Now" last sent the WhatsApp offer).
 // Deliberately NOT cleared on logout — it belongs to the visitor/browser, not
 // the login session. See components/OfferFlow.tsx.
 export const OFFER_LEAD_STORAGE_KEY = "sera_offer_lead";
@@ -22,10 +22,24 @@ export const OFFER_LEAD_STORAGE_KEY = "sera_offer_lead";
 // an already-mounted home-page filter form re-reads it and shows the values.
 export const FILTERS_UPDATED_EVENT = "sera:filters-updated";
 
-// Discount advertised in the "Today's Offer" popup. Display-only: the real
-// checkout discount comes from lib/todaysOffer.ts and is applied
-// automatically at review.
-export const OFFER_DISCOUNT_PERCENT = 5;
+// Window event fired whenever the visitor's stay dates change on the page
+// (home filters or a hotel's stay card), detail = StayDetails. The offer flow
+// uses it to decide which version of the offer form to show, and when, and
+// to fill in the stay details the shorter versions don't ask for.
+export const STAY_DATES_CHANGED_EVENT = "sera:stay-dates-changed";
+
+export type StayDetails = { checkIn: string; checkOut: string; guests?: string; location?: string };
+
+export function announceStayDates(stay: StayDetails) {
+  window.dispatchEvent(new CustomEvent<StayDetails>(STAY_DATES_CHANGED_EVENT, { detail: stay }));
+}
+
+// What kind of stay a property is — shown on cards and the detail page, and
+// used by the home-page category filter. Properties saved before this field
+// existed count as hotels.
+export const PROPERTY_TYPES = ["Hotel", "Resort", "Vacation Home"] as const;
+export type PropertyType = (typeof PROPERTY_TYPES)[number];
+export const DEFAULT_PROPERTY_TYPE: PropertyType = "Hotel";
 
 // Room photos are keyed by room type name (every hotel has the same two room
 // types), so they don't have to be stored on each embedded roomType document.
@@ -35,6 +49,9 @@ export const unsplash = (id: string, w = 1200) =>
 export const ROOM_TYPE_IMAGES: Record<string, string> = {
   "Deluxe Room": unsplash("1618773928121-c32242e63f39"),
   "Executive Suite": unsplash("1590490360182-c33d57733427"),
+  // Vacation home units
+  "Two-Bedroom Cottage": unsplash("1445019980597-93fa8acb246c"),
+  "Entire Villa": unsplash("1566073771259-6a8506099945"),
 };
 
 export const HERO_IMAGE = unsplash("1520250497591-112f2f40a3f4", 2000);

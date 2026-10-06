@@ -43,19 +43,69 @@ The live UI no longer echoes this value in the "OTP sent" response message —
    location). The WhatsApp number must be OTP-verified (Send OTP → `123456`, any
    other OTP fails) — verifying also logs the visitor in (same `/api/auth/*` as `/login`). Submitting it
    also fills the home-page filter form, then shows a "Creating your offer" loader
-   and a "Today's Offer 5% off" popup. Once per visitor (localStorage
-   `sera_offer_lead`, not cleared on logout — clear it by hand to replay the demo).
-2. The visitor's **first** room "Book Now" shows a "Check your WhatsApp" popup
-   before going to review. Later Book Now clicks (another room, going back) skip it.
-3. Review page applies **today's checkout discount automatically** — no coupon
-   field. It's currently a fixed **4%** in `lib/todaysOffer.ts` (`getTodaysOffer()`),
-   which will later fetch the brand's discount-of-the-day from APTI. It's read
-   server-side by both the review page and `POST /api/bookings` (which stores
-   `originalAmount`, `discountPercent`, `discountAmount`, `totalAmount` = payable),
-   so the browser never decides the price.
+   and a **"Today's Offer — Up to X% off"** popup. The form is asked once per browser
+   (localStorage `sera_offer_lead`, not cleared on logout — clear it by hand to
+   replay the demo); the popup comes back **once a day** (first visit of the day,
+   same 10-second delay) with that day's "up to" discount.
+2. The visitor's **first room "Book Now" of the day** shows a "Check your WhatsApp"
+   popup before going to review, and asks APTI to send the offer on WhatsApp (see
+   below). Later Book Now clicks that day skip both.
+3. Review page applies **today's actual discount automatically** — no coupon
+   field. It's read server-side by both the review page and `POST /api/bookings`
+   (which stores `originalAmount`, `discountLabel`, `discountAmount`,
+   `totalAmount` = payable), so the browser never decides the price.
 
-**This site never sends WhatsApp messages.** APTI does, off the SDK events these
-screens produce.
+### Today's discount — `/api/discount`
+
+One setting for the whole site (MongoDB `discountsettings`, `key: "current"`):
+
+| Field | Meaning |
+|---|---|
+| `todaysDiscount` | shown in the offer popup as "Up to …" |
+| `actualDiscount` | what checkout really takes off, and what the WhatsApp message quotes |
+
+Each is `{ "type": "percent" | "amount", "value": <number> }` — e.g. `4` % or
+₹`350` flat. It stays until changed (no midnight reset). Until a setting is
+saved, the defaults are up to 5% / actual 4%.
+
+| Call | Who | Body |
+|---|---|---|
+| `GET /api/discount` | anyone | → `{ todaysDiscount }` (with the admin key: also `actualDiscount`, `isDefault`, `updatedAt`) |
+| `POST /api/discount` | admin | `{ "todaysDiscount": {...}, "actualDiscount": {...} }` — create (409 if it exists) |
+| `PATCH /api/discount` | admin | either or both fields — change |
+
+Admin calls need the header `x-admin-key: <DISCOUNT_ADMIN_KEY>`.
+
+### WhatsApp offer message (via APTI)
+
+The site never talks to WhatsApp. On the first room "Book Now" of the day the
+browser calls `POST /api/whatsapp/offer` (`{ name }`); the server takes the
+**number from the login session** (the OTP-verified one) and the actual
+discount from the database, and calls APTI:
+
+```
+POST <APTI_WHATSAPP_SEND_URL>          (APTI: /whatsapp/site-send)
+x-apti-key: <APTI_API_KEY>            (the site's API key, same as the SDK's)
+{
+  "siteId": "<APTI_SITE_ID>",
+  "template": "room_booking_deduction_update",
+  "label": "Book Now (first of the day)",
+  "contacts": [{ "to": "91XXXXXXXXXX", "variables": { "body_1": "<name>", "body_2": "4%" } }]
+}
+```
+
+APTI checks the key exactly like the SDK does (key active, site active, key
+belongs to `siteId`), then sends from the WhatsApp number linked to the site.
+Max 10 contacts per call. While `APTI_WHATSAPP_SEND_URL` is unset the call is
+skipped (logged in the browser console) and booking carries on.
+
+| Env var | |
+|---|---|
+| `DISCOUNT_ADMIN_KEY` | protects POST/PATCH `/api/discount` |
+| `APTI_WHATSAPP_SEND_URL` | APTI's send endpoint (unset = skip) |
+| `APTI_API_KEY` | the site's APTI API key (the `apk_…` key in the SDK script tag) |
+| `APTI_SITE_ID` | this site's APTI site ID (`8e13eea4-1457-440a-a64a-07a9cf809d10`) |
+| `APTI_WHATSAPP_TEMPLATE` | optional, default `room_booking_deduction_update` |
 
 ## Mock payment
 

@@ -7,10 +7,11 @@ import {
   FILTERS_UPDATED_EVENT,
   HOME_FILTERS_STORAGE_KEY,
   ROOM_TYPE_IMAGES,
+  announceStayDates,
   formatINR,
   formatMobile,
 } from "@/lib/constants";
-import { readOfferLead, todayISO, updateOfferLead, type OfferLead } from "@/lib/offerLead";
+import { couponSentToday, readOfferLead, todayISO, updateOfferLead, type OfferLead } from "@/lib/offerLead";
 import { WhatsAppGlyph } from "@/components/OfferFlow";
 
 type RoomType = {
@@ -24,6 +25,7 @@ type RoomType = {
 type HotelPlain = {
   _id: string;
   name: string;
+  city: string;
   description: string;
   amenities?: string[];
   roomTypes: RoomType[];
@@ -69,6 +71,11 @@ export default function HotelDetailClient({ hotel, children }: { hotel: HotelPla
     return () => window.removeEventListener(FILTERS_UPDATED_EVENT, fillFromSavedFilters);
   }, [searchParams]);
 
+  // Tell the offer flow about the stay being looked at (dates, guests, city).
+  useEffect(() => {
+    announceStayDates({ checkIn, checkOut, guests: String(guests), location: hotel.city });
+  }, [checkIn, checkOut, guests, hotel.city]);
+
   const nights = nightsBetween(checkIn, checkOut);
 
   function handleBook(roomTypeId: string) {
@@ -87,11 +94,13 @@ export default function HotelDetailClient({ hotel, children }: { hotel: HotelPla
     const params = new URLSearchParams({ roomTypeId, checkIn, checkOut, guests: String(guests) });
     const href = `/hotels/${hotel._id}/review?${params.toString()}`;
 
-    // Only the visitor's very first room "Book Now" shows this popup — APTI
-    // sends the coupon on WhatsApp off it. Going back and picking another
-    // room goes straight to review, so no second message is triggered.
+    // The visitor's first room "Book Now" of the day shows this popup and
+    // asks APTI (through our server) to send today's offer on WhatsApp.
+    // Later clicks that day go straight to review, so no second message.
     const currentLead = readOfferLead();
-    if (currentLead && !currentLead.couponSent) {
+    if (currentLead && !couponSentToday(currentLead)) {
+      updateOfferLead({ couponSentOn: todayISO() });
+      sendOfferWhatsapp(currentLead.name);
       setLead(currentLead);
       setPendingReviewHref(href);
       return;
@@ -100,7 +109,6 @@ export default function HotelDetailClient({ hotel, children }: { hotel: HotelPla
   }
 
   function handleWhatsAppOk() {
-    updateOfferLead({ couponSent: true });
     const href = pendingReviewHref;
     setPendingReviewHref(null);
     if (href) router.push(href);
@@ -270,6 +278,22 @@ export default function HotelDetailClient({ hotel, children }: { hotel: HotelPla
       {pendingReviewHref && lead && <WhatsAppCouponPopup lead={lead} onOk={handleWhatsAppOk} />}
     </div>
   );
+}
+
+// Fire-and-forget: the visitor continues to review whatever happens. The
+// server picks the number from the login session and the discount from the
+// database; only the greeting name comes from here.
+function sendOfferWhatsapp(name: string) {
+  fetch("/api/whatsapp/offer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (!data?.sent) console.info("[offer WhatsApp] not sent:", data?.reason);
+    })
+    .catch(() => {});
 }
 
 function WhatsAppCouponPopup({ lead, onOk }: { lead: OfferLead; onOk: () => void }) {

@@ -12,6 +12,7 @@ async function main() {
     {
       legacyName: "Grand Meridian Hotel",
       name: "Sera Grand Meridian Hotel",
+      propertyType: "Hotel",
       city: "Mumbai",
       description: "A relaxed seaside stay in the heart of Mumbai, close to the city's best sights and dining.",
       address: "14 Marine Drive, Mumbai, Maharashtra 400020",
@@ -35,6 +36,7 @@ async function main() {
     {
       legacyName: "Colaba Heights Hotel",
       name: "Sera Colaba Heights Hotel",
+      propertyType: "Hotel",
       city: "Mumbai",
       description: "A polished business hotel steps from the Gateway of India, built for both work and weekend trips.",
       address: "22 Shahid Bhagat Singh Road, Colaba, Mumbai, Maharashtra 400001",
@@ -59,6 +61,7 @@ async function main() {
     {
       legacyName: "Highland Retreat",
       name: "Sera Highland Retreat",
+      propertyType: "Hotel",
       city: "Manali",
       description: "A cosy hill-station retreat surrounded by pine forests, perfect for a quiet mountain getaway.",
       address: "Log Hut Area, Manali, Himachal Pradesh 175131",
@@ -82,6 +85,7 @@ async function main() {
     {
       legacyName: "Riverside Pines Resort",
       name: "Sera Riverside Pines Resort",
+      propertyType: "Resort",
       city: "Manali",
       description: "A riverside resort on the banks of the Beas, with bonfire evenings and mountain trails nearby.",
       address: "Riverside Road, Old Manali, Himachal Pradesh 175131",
@@ -101,6 +105,30 @@ async function main() {
         { reviewerName: "Simran Kaur", rating: 5, comment: "Falling asleep to the river sound was magical." },
         { reviewerName: "Arjun Bhatt", rating: 5, comment: "Bonfire nights and great trekking guides nearby." },
         { reviewerName: "Meera Joshi", rating: 3, comment: "Lovely setting, but rooms could use better heating." },
+      ],
+    },
+    {
+      legacyName: "Pinewood Cottage",
+      name: "Sera Pinewood Cottage",
+      propertyType: "Vacation Home",
+      city: "Manali",
+      description: "A private hillside cottage in the apple orchards above Old Manali — your own kitchen, garden and fireplace, with a caretaker on call.",
+      address: "Orchard Lane, Old Manali, Himachal Pradesh 175131",
+      images: [
+        unsplash("1445019980597-93fa8acb246c"),
+        unsplash("1566073771259-6a8506099945"),
+        unsplash("1464822759023-fed622ff2c3b"),
+        unsplash("1618773928121-c32242e63f39"),
+        unsplash("1590490360182-c33d57733427"),
+      ],
+      amenities: ["Entire home", "Private garden", "Fully equipped kitchen", "Fireplace", "Caretaker on call", "Free parking"],
+      roomTypes: [
+        { name: "Two-Bedroom Cottage", pricePerNight: 6500, capacity: 4, description: "Two bedrooms, living room and kitchen — the whole cottage is yours." },
+        { name: "Entire Villa", pricePerNight: 11500, capacity: 8, description: "Four-bedroom villa with an orchard-view deck, for families and groups." },
+      ],
+      reviews: [
+        { reviewerName: "Rohan Kapoor", rating: 5, comment: "Felt like our own home in the hills — the kids loved the orchard." },
+        { reviewerName: "Neha Sharma", rating: 4, comment: "Very private and peaceful. A short drive to the market." },
       ],
     },
   ];

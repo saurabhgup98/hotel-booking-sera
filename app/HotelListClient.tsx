@@ -3,10 +3,14 @@
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import {
+  DEFAULT_PROPERTY_TYPE,
   FALLBACK_HOTEL_IMAGE,
   FILTERS_UPDATED_EVENT,
   HOME_FILTERS_STORAGE_KEY,
+  PROPERTY_TYPES,
+  announceStayDates,
   formatINR,
+  type PropertyType,
 } from "@/lib/constants";
 import { todayISO } from "@/lib/offerLead";
 
@@ -16,6 +20,7 @@ type HotelPlain = {
   _id: string;
   name: string;
   city: string;
+  propertyType?: PropertyType;
   description: string;
   images?: string[];
   amenities?: string[];
@@ -31,6 +36,8 @@ export default function HotelListClient({ hotels }: { hotels: HotelPlain[] }) {
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState("");
   const [location, setLocation] = useState("");
+  // "" = all property types
+  const [category, setCategory] = useState("");
   const [filterError, setFilterError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
@@ -49,6 +56,7 @@ export default function HotelListClient({ hotels }: { hotels: HotelPlain[] }) {
           setCheckOut(parsed.checkOut ?? "");
           setGuests(parsed.guests ?? "");
           setLocation(parsed.location ?? "");
+          setCategory(parsed.category ?? "");
         }
       } catch {}
     }
@@ -63,8 +71,13 @@ export default function HotelListClient({ hotels }: { hotels: HotelPlain[] }) {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(HOME_FILTERS_STORAGE_KEY, JSON.stringify({ checkIn, checkOut, guests, location }));
+      localStorage.setItem(HOME_FILTERS_STORAGE_KEY, JSON.stringify({ checkIn, checkOut, guests, location, category }));
     } catch {}
+  }, [hydrated, checkIn, checkOut, guests, location, category]);
+
+  // Tell the offer flow when the visitor has picked (or cleared) stay dates.
+  useEffect(() => {
+    if (hydrated) announceStayDates({ checkIn, checkOut, guests, location });
   }, [hydrated, checkIn, checkOut, guests, location]);
 
   function handleClearFilters() {
@@ -72,14 +85,20 @@ export default function HotelListClient({ hotels }: { hotels: HotelPlain[] }) {
     setCheckOut("");
     setGuests("");
     setLocation("");
+    setCategory("");
     setFilterError(null);
   }
 
   const cities = useMemo(() => Array.from(new Set(hotels.map((h) => h.city))).sort(), [hotels]);
 
   const visibleHotels = useMemo(
-    () => (location === "" ? hotels : hotels.filter((h) => h.city === location)),
-    [hotels, location]
+    () =>
+      hotels.filter(
+        (h) =>
+          (location === "" || h.city === location) &&
+          (category === "" || (h.propertyType ?? DEFAULT_PROPERTY_TYPE) === category)
+      ),
+    [hotels, location, category]
   );
 
   const filtersFilled = checkIn !== "" && checkOut !== "" && guests !== "";
@@ -196,7 +215,32 @@ export default function HotelListClient({ hotels }: { hotels: HotelPlain[] }) {
               {visibleHotels.length} {visibleHotels.length === 1 ? "property" : "properties"} · Best rates, booked direct
             </p>
           </div>
+          <div id="home-category-filter" role="group" aria-label="Property type" className="flex flex-wrap gap-2">
+            {["", ...PROPERTY_TYPES].map((type) => (
+              <button
+                key={type || "all"}
+                id={`home-category-${type ? type.toLowerCase().replace(/\s+/g, "-") : "all"}-btn`}
+                type="button"
+                aria-pressed={category === type}
+                onClick={() => setCategory(type)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold ring-1 transition ${
+                  category === type
+                    ? "bg-sera-forest text-white ring-sera-forest"
+                    : "bg-white text-sera-muted ring-sera-line hover:text-sera-forest"
+                }`}
+              >
+                {type ? `${type}s` : "All stays"}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {visibleHotels.length === 0 && (
+          <p id="home-no-stays" className="rounded-2xl border border-dashed border-sera-line bg-white p-8 text-center text-sm text-sera-muted">
+            No {category ? `${category.toLowerCase()}s` : "stays"}
+            {location ? ` in ${location}` : ""} right now. Try another type or location.
+          </p>
+        )}
 
         <div className="grid gap-6 md:grid-cols-2">
           {visibleHotels.map((hotel) => {
@@ -207,6 +251,8 @@ export default function HotelListClient({ hotels }: { hotels: HotelPlain[] }) {
               <article
                 key={hotel._id}
                 id={`hotel-card-${hotel._id}`}
+                data-property-type={hotel.propertyType ?? DEFAULT_PROPERTY_TYPE}
+                data-city={hotel.city}
                 className="group overflow-hidden rounded-3xl border border-sera-line bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/5"
               >
                 <div className="relative h-60 overflow-hidden">
@@ -232,6 +278,9 @@ export default function HotelListClient({ hotels }: { hotels: HotelPlain[] }) {
                   )}
                 </div>
                 <div className="space-y-3 p-6">
+                  <span className="inline-block rounded-full bg-sera-brass-soft px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-sera-brass">
+                    {hotel.propertyType ?? DEFAULT_PROPERTY_TYPE}
+                  </span>
                   <h3 className="font-display text-2xl text-sera-ink">{hotel.name}</h3>
                   <p className="line-clamp-2 text-sm leading-relaxed text-sera-muted">{hotel.description}</p>
                   {hotel.amenities && hotel.amenities.length > 0 && (

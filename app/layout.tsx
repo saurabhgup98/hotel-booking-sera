@@ -71,7 +71,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <span className="text-xs text-sera-sand/70">© 2026 Sera Hotels and Resorts. All rights reserved.</span>
           </div>
         </footer>
-        <OfferFlow cities={cities} />
+        <OfferFlow cities={cities} signedInMobile={session?.mobile ?? null} />
       </body>
     </html>
   );

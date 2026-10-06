@@ -1,17 +1,37 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   FILTERS_UPDATED_EVENT,
   HERO_IMAGE,
   HOME_FILTERS_STORAGE_KEY,
-  OFFER_DISCOUNT_PERCENT,
+  STAY_DATES_CHANGED_EVENT,
+  formatMobile,
   formatStayDate,
+  type StayDetails,
 } from "@/lib/constants";
-import { readOfferLead, todayISO, updateOfferLead, writeOfferLead, type OfferLead } from "@/lib/offerLead";
+import { formatDiscount, type Discount } from "@/lib/discount";
+import {
+  offerSeenToday,
+  readOfferLead,
+  todayISO,
+  updateOfferLead,
+  writeOfferLead,
+  type OfferLead,
+} from "@/lib/offerLead";
 
 type Stage = "form" | "creating" | "offer" | null;
+
+/**
+ * Which version of the offer form to show — it only asks for what we don't
+ * already know about the visitor when it opens:
+ *   full      not logged in, no stay dates → name, WhatsApp + OTP, stay details
+ *   contact   picked stay dates, not logged in → name, WhatsApp + OTP
+ *   stay      logged in, no stay dates → name, stay details
+ *   nameOnly  logged in and picked stay dates → name
+ */
+export type FormVariant = "full" | "contact" | "stay" | "nameOnly";
 
 // Pages where interrupting the visitor with the offer makes no sense (mid
 // login/payment, or looking at a booking they already made).
@@ -19,51 +39,129 @@ const EXCLUDED_PREFIXES = ["/login", "/payment", "/booking", "/bookings"];
 
 const CREATING_STEPS = ["Checking availability for your dates", "Comparing rates across our hotels", "Curating your offer"];
 const CREATING_DURATION_MS = 2800;
-// The offer form doesn't interrupt the visitor the moment they land — it
-// opens after they've had this long to look around.
-const FORM_DELAY_MS = 10_000;
+
+// When the form opens. The first rule that applies wins:
+//   logged in          → AFTER_LOGIN_DELAY_MS after logging in (or after
+//                        landing, if they arrived already logged in)
+//   picked stay dates  → AFTER_DATES_DELAY_MS after picking them
+//   neither            → LANDING_DELAY_MS after landing
+const AFTER_LOGIN_DELAY_MS = 10_000;
+const AFTER_DATES_DELAY_MS = 5_000;
+const LANDING_DELAY_MS = 15_000;
+
+const hasDates = (stay: StayDetails | null): stay is StayDetails => !!stay?.checkIn && !!stay?.checkOut;
+
+function readSavedStay(): StayDetails | null {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HOME_FILTERS_STORAGE_KEY) || "null");
+    return hasDates(saved) ? saved : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
- * The landing-page offer flow, shown once per visitor:
- *   1. "form"     — non-dismissable modal (opens FORM_DELAY_MS after landing)
- *                   collecting name, OTP-verified WhatsApp number and stay
- *                   details. Verifying the OTP also logs the visitor in (same
- *                   /api/auth/verify-otp as the login page). On submit the
- *                   stay details are also written into the home-page filters.
+ * The landing-page offer flow. The form is asked once per browser; the
+ * "Today's Offer" popup comes back once a day (first visit of the day),
+ * showing the brand's current "up to" discount from /api/discount.
+ *   1. "form"     — non-dismissable modal; when it opens and which fields it
+ *                   asks for depend on what the visitor has done (see
+ *                   FormVariant and the delays above). Verifying the OTP also
+ *                   logs the visitor in (same /api/auth/verify-otp as the
+ *                   login page). On submit the stay details are also written
+ *                   into the home-page filters.
  *   2. "creating" — short "creating your offer" loader.
- *   3. "offer"    — "Today's Offer" popup; its Book Now closes the flow and
- *                   takes the visitor to the hotel list / rooms.
+ *   3. "offer"    — "Today's Offer" popup ("Up to X% off"); its Book Now
+ *                   closes the flow for today and takes the visitor to the
+ *                   hotel list / rooms.
  * The site itself never sends WhatsApp messages — APTI does, off the SDK
  * events these screens (and their stable ids) produce.
  */
-export default function OfferFlow({ cities }: { cities: string[] }) {
+export default function OfferFlow({ cities, signedInMobile }: { cities: string[]; signedInMobile: string | null }) {
   const pathname = usePathname();
   const [stage, setStage] = useState<Stage>(null);
   const [lead, setLead] = useState<OfferLead | null>(null);
-  // The 10s delay counts from the first page of the visit, not per page —
-  // this component lives in the root layout, so it survives client-side
-  // navigation. Once elapsed, the form opens on the next eligible page.
-  const [formDelayElapsed, setFormDelayElapsed] = useState(false);
+  // The "up to" discount the popup advertises; null until loaded (or if the
+  // request fails, in which case the popup just leaves the number out).
+  const [upTo, setUpTo] = useState<Discount | null>(null);
+
+  // This component lives in the root layout, so it survives client-side
+  // navigation: all timings below count from the first page of the visit.
+  const landedAt = useRef(Date.now());
+  const [loggedInAt, setLoggedInAt] = useState<number | null>(signedInMobile ? landedAt.current : null);
+  const [stay, setStay] = useState<StayDetails | null>(null);
+  const [datesPickedAt, setDatesPickedAt] = useState<number | null>(null);
+  // True once the form's opening time (from the rules above) has passed.
+  const [formDue, setFormDue] = useState(false);
+  // Fixed when the form opens, so logging in through its OTP step (or
+  // changing dates behind it) doesn't swap the fields mid-way.
+  const [variant, setVariant] = useState<FormVariant>("full");
 
   useEffect(() => {
-    const timer = setTimeout(() => setFormDelayElapsed(true), FORM_DELAY_MS);
-    return () => clearTimeout(timer);
+    fetch("/api/discount", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setUpTo(data?.todaysDiscount ?? null))
+      .catch(() => {});
   }, []);
+
+  // Logged in (or out) — the layout re-renders with the new session.
+  useEffect(() => {
+    if (!signedInMobile) setLoggedInAt(null);
+    else setLoggedInAt((at) => at ?? Date.now());
+  }, [signedInMobile]);
+
+  // Stay dates: whatever the home filters already hold, then every change the
+  // home filters or a hotel's stay card announce.
+  useEffect(() => {
+    function apply(next: StayDetails | null) {
+      if (hasDates(next)) {
+        setStay(next);
+        setDatesPickedAt((at) => at ?? Date.now());
+      } else {
+        setStay(null);
+        setDatesPickedAt(null);
+      }
+    }
+    apply(readSavedStay());
+    const onChange = (e: Event) => apply((e as CustomEvent<StayDetails>).detail);
+    window.addEventListener(STAY_DATES_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(STAY_DATES_CHANGED_EVENT, onChange);
+  }, []);
+
+  useEffect(() => {
+    const dueAt =
+      loggedInAt !== null
+        ? loggedInAt + AFTER_LOGIN_DELAY_MS
+        : datesPickedAt !== null
+          ? datesPickedAt + AFTER_DATES_DELAY_MS
+          : landedAt.current + LANDING_DELAY_MS;
+    const wait = dueAt - Date.now();
+    setFormDue(wait <= 0);
+    if (wait <= 0) return;
+    const timer = setTimeout(() => setFormDue(true), wait);
+    return () => clearTimeout(timer);
+  }, [loggedInAt, datesPickedAt]);
 
   useEffect(() => {
     if (EXCLUDED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
       setStage(null);
       return;
     }
-    // Don't yank an in-progress step (e.g. the loader) back to the form.
-    if (stage === "creating" || stage === "offer") return;
+    // Don't yank an open step (the form mid-fill, the loader, the popup).
+    if (stage) return;
     const saved = readOfferLead();
     setLead(saved);
-    if (!saved) setStage(formDelayElapsed ? "form" : null);
-    else if (!saved.offerSeen) setStage("offer");
-    else setStage(null);
+    if (!saved) {
+      if (formDue) {
+        const datesKnown = hasDates(stay);
+        setVariant(signedInMobile ? (datesKnown ? "nameOnly" : "stay") : datesKnown ? "contact" : "full");
+        setStage("form");
+      }
+    } else if (!offerSeenToday(saved) && formDue) {
+      setStage("offer");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, formDelayElapsed]);
+  }, [pathname, formDue]);
 
   // Lock page scroll behind any open step.
   useEffect(() => {
@@ -83,14 +181,18 @@ export default function OfferFlow({ cities }: { cities: string[] }) {
 
   function handleLeadSubmitted(newLead: OfferLead) {
     writeOfferLead(newLead);
+    // Fill the home-page filters from the lead, keeping anything already
+    // there that the lead doesn't have (e.g. the category filter).
     try {
+      const saved = JSON.parse(localStorage.getItem(HOME_FILTERS_STORAGE_KEY) || "{}");
       localStorage.setItem(
         HOME_FILTERS_STORAGE_KEY,
         JSON.stringify({
+          ...saved,
           checkIn: newLead.checkIn,
           checkOut: newLead.checkOut,
           guests: newLead.guests,
-          location: newLead.location,
+          location: newLead.location || saved.location || "",
         })
       );
     } catch {}
@@ -100,7 +202,7 @@ export default function OfferFlow({ cities }: { cities: string[] }) {
   }
 
   function handleBookNow() {
-    updateOfferLead({ offerSeen: true });
+    updateOfferLead({ offerSeenOn: todayISO() });
     setStage(null);
     // Deferred until the popup has unmounted and released the body scroll
     // lock — scrolling while overflow is still hidden is a no-op.
@@ -114,9 +216,17 @@ export default function OfferFlow({ cities }: { cities: string[] }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-sera-ink/60 p-3 backdrop-blur-sm animate-fade-in sm:p-6">
-      {stage === "form" && <LeadForm cities={cities} onSubmitted={handleLeadSubmitted} />}
+      {stage === "form" && (
+        <LeadForm
+          variant={variant}
+          cities={cities}
+          signedInMobile={signedInMobile}
+          knownStay={stay}
+          onSubmitted={handleLeadSubmitted}
+        />
+      )}
       {stage === "creating" && <CreatingOffer />}
-      {stage === "offer" && lead && <OfferPopup lead={lead} onBookNow={handleBookNow} />}
+      {stage === "offer" && lead && <OfferPopup lead={lead} upTo={upTo} onBookNow={handleBookNow} />}
     </div>
   );
 }
@@ -135,7 +245,30 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor: string; c
 const inputClass =
   "h-12 w-full rounded-xl border border-[#D9D1C2] bg-white px-3.5 text-[15px] text-sera-ink placeholder:text-[#9A9385] focus:border-sera-forest focus:outline-none focus:ring-2 focus:ring-sera-forest/15";
 
-function LeadForm({ cities, onSubmitted }: { cities: string[]; onSubmitted: (lead: OfferLead) => void }) {
+const FORM_INTRO: Record<FormVariant, string> = {
+  full: "Please fill in the details below.",
+  contact: "Tell us your name and verify your WhatsApp number — we'll send your offer there.",
+  stay: "Tell us your name and your stay plans, and we'll send your offer on WhatsApp.",
+  nameOnly: "Just tell us your name and we'll send your curated offer on WhatsApp.",
+};
+
+function LeadForm({
+  variant,
+  cities,
+  signedInMobile,
+  knownStay,
+  onSubmitted,
+}: {
+  variant: FormVariant;
+  cities: string[];
+  signedInMobile: string | null;
+  knownStay: StayDetails | null;
+  onSubmitted: (lead: OfferLead) => void;
+}) {
+  // Logged-in visitors already verified their number with the login OTP.
+  const asksContact = variant === "full" || variant === "contact";
+  // Visitors who picked dates on the site aren't asked for them again.
+  const asksStay = variant === "full" || variant === "stay";
   const [name, setName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [checkIn, setCheckIn] = useState("");
@@ -211,26 +344,35 @@ function LeadForm({ cities, onSubmitted }: { cities: string[]; onSubmitted: (lea
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!name.trim() || !whatsapp.trim() || !checkIn || !checkOut || !guests || !location) {
-      setError("Please fill in all the details so we can curate your offer.");
+    const missingContact = asksContact && !whatsapp.trim();
+    const missingStay = asksStay && (!checkIn || !checkOut || !guests || !location);
+    if (!name.trim() || missingContact || missingStay) {
+      setError(variant === "nameOnly" ? "Please enter your name." : "Please fill in all the details so we can curate your offer.");
       return;
     }
-    if (otpStep !== "verified") {
+    if (asksContact && otpStep !== "verified") {
       setError("Please verify your WhatsApp number with the OTP.");
       return;
     }
-    if (new Date(checkOut) <= new Date(checkIn)) {
+    if (asksStay && new Date(checkOut) <= new Date(checkIn)) {
       setError("Check-out must be after check-in.");
       return;
     }
+    // Whatever the form didn't ask for comes from what the visitor already
+    // gave the site: their login number, and the stay they picked.
+    const stay = asksStay
+      ? { checkIn, checkOut, guests, location }
+      : {
+          checkIn: knownStay?.checkIn ?? "",
+          checkOut: knownStay?.checkOut ?? "",
+          guests: knownStay?.guests || "2",
+          location: knownStay?.location ?? "",
+        };
     onSubmitted({
       name: name.trim(),
-      whatsapp: whatsapp.trim(),
+      whatsapp: asksContact ? whatsapp.trim() : signedInMobile ?? "",
       whatsappVerified: true,
-      checkIn,
-      checkOut,
-      guests,
-      location,
+      ...stay,
       createdAt: new Date().toISOString(),
     });
   }
@@ -251,7 +393,7 @@ function LeadForm({ cities, onSubmitted }: { cities: string[]; onSubmitted: (lea
         </div>
       </div>
 
-      <form id="offer-lead-form" onSubmit={handleSubmit} noValidate className="overflow-y-auto p-6 sm:p-8">
+      <form id="offer-lead-form" data-offer-variant={variant} onSubmit={handleSubmit} noValidate className="overflow-y-auto p-6 sm:p-8">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-sera-brass-soft px-3 py-1 text-xs font-semibold text-sera-brass">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
             <path d="M20 12v10H4V12" />
@@ -265,7 +407,7 @@ function LeadForm({ cities, onSubmitted }: { cities: string[]; onSubmitted: (lea
         <h2 id="offer-form-title" className="mt-3 font-display text-[28px] leading-tight text-sera-ink">
           We will curate the best offer for you
         </h2>
-        <p className="mt-1.5 text-sm text-sera-muted">Please fill in the details below.</p>
+        <p className="mt-1.5 text-sm text-sera-muted">{FORM_INTRO[variant]}</p>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -282,6 +424,8 @@ function LeadForm({ cities, onSubmitted }: { cities: string[]; onSubmitted: (lea
               />
             </Field>
           </div>
+          {asksContact && (
+          <>
           <div className="sm:col-span-2">
             <Field label="WhatsApp number" htmlFor="offer-whatsapp-input">
               <div className="flex h-12 overflow-hidden rounded-xl border border-[#D9D1C2] bg-white focus-within:border-sera-forest focus-within:ring-2 focus-within:ring-sera-forest/15">
@@ -361,6 +505,10 @@ function LeadForm({ cities, onSubmitted }: { cities: string[]; onSubmitted: (lea
               {otpError}
             </p>
           )}
+          </>
+          )}
+          {asksStay && (
+          <>
           <Field label="Check-in" htmlFor="offer-checkin-input">
             <input
               id="offer-checkin-input"
@@ -414,7 +562,16 @@ function LeadForm({ cities, onSubmitted }: { cities: string[]; onSubmitted: (lea
               ))}
             </select>
           </Field>
+          </>
+          )}
         </div>
+
+        {!asksContact && signedInMobile && (
+          <p id="offer-signed-in-number" className="mt-4 flex items-center gap-2 text-sm text-sera-muted">
+            <WhatsAppGlyph className="h-4 w-4 text-[#1F8F4E]" />
+            We&apos;ll send it to {formatMobile(signedInMobile)}
+          </p>
+        )}
 
         {error && (
           <p id="offer-form-error" role="alert" className="mt-4 text-sm font-medium text-red-700">
@@ -477,8 +634,10 @@ function CreatingOffer() {
   );
 }
 
-function OfferPopup({ lead, onBookNow }: { lead: OfferLead; onBookNow: () => void }) {
+function OfferPopup({ lead, upTo, onBookNow }: { lead: OfferLead; upTo: Discount | null; onBookNow: () => void }) {
   const firstName = lead.name.split(" ")[0];
+  // On a later day the saved stay dates may already be over — leave them out then.
+  const datesStillAhead = lead.checkOut >= todayISO();
   return (
     <div
       id="offer-popup"
@@ -489,17 +648,29 @@ function OfferPopup({ lead, onBookNow }: { lead: OfferLead; onBookNow: () => voi
     >
       <div className="relative bg-sera-forest px-7 pb-7 pt-8 text-center text-white">
         <p className="text-xs font-semibold tracking-[0.22em] text-white/75">TODAY&apos;S OFFER</p>
-        <p id="offer-popup-title" className="mt-2 font-display leading-none">
-          <span className="text-7xl font-semibold">{OFFER_DISCOUNT_PERCENT}%</span>
-          <span className="ml-2 text-3xl">off</span>
-        </p>
+        {upTo ? (
+          <p id="offer-popup-title" className="mt-2 font-display leading-none">
+            <span className="block text-sm font-sans font-semibold uppercase tracking-[0.2em] text-white/80">Up to</span>
+            <span id="offer-popup-discount" className="mt-1 inline-block text-7xl font-semibold">
+              {formatDiscount(upTo)}
+            </span>
+            <span className="ml-2 text-3xl">off</span>
+          </p>
+        ) : (
+          <p id="offer-popup-title" className="mt-3 font-display text-4xl leading-tight">
+            Exclusive savings
+          </p>
+        )}
         <p className="mt-3 text-sm text-white/85">
-          Curated for {firstName} · {lead.location}
+          Curated for {firstName}
+          {lead.location ? ` · ${lead.location}` : ""}
         </p>
-        <p className="mt-1 text-xs text-white/70">
-          {formatStayDate(lead.checkIn, false)} – {formatStayDate(lead.checkOut, false)} · {lead.guests}{" "}
-          {lead.guests === "1" ? "guest" : "guests"}
-        </p>
+        {lead.checkIn && datesStillAhead && (
+          <p className="mt-1 text-xs text-white/70">
+            {formatStayDate(lead.checkIn, false)} – {formatStayDate(lead.checkOut, false)} · {lead.guests}{" "}
+            {lead.guests === "1" ? "guest" : "guests"}
+          </p>
+        )}
       </div>
       <div className="p-7">
         <p className="text-center text-base font-semibold text-sera-ink">Book now to avail the offer.</p>

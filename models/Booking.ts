@@ -30,6 +30,10 @@ const bookingSchema = new Schema(
     originalAmount: { type: Number },
     couponCode: { type: String },
     discountPercent: { type: Number },
+    // How the discount reads, e.g. "4% off" or "₹350 off" (today's discount
+    // can be a percent or a flat amount). Older bookings only have
+    // discountPercent.
+    discountLabel: { type: String },
     discountAmount: { type: Number, default: 0 },
     status: { type: String, enum: BOOKING_STATUSES, default: "pending_payment" },
     upiId: { type: String },

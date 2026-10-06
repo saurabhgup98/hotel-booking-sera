@@ -12,7 +12,7 @@ export default function ReviewClient({
   pricePerNight,
   nights,
   totalAmount,
-  discountPercent,
+  discountLabel,
   discountAmount,
   payable,
   checkIn,
@@ -27,7 +27,7 @@ export default function ReviewClient({
   totalAmount: number;
   // Today's checkout discount, already applied server-side (see
   // lib/todaysOffer.ts). 0 when there's no offer today.
-  discountPercent: number;
+  discountLabel: string | null;
   discountAmount: number;
   payable: number;
   checkIn: string;
@@ -107,7 +107,7 @@ export default function ReviewClient({
           </div>
           {discountAmount > 0 && (
             <div className="flex justify-between gap-4 text-[#1F7A45]">
-              <dt>Today&apos;s offer ({discountPercent}% off)</dt>
+              <dt>Today&apos;s offer ({discountLabel})</dt>
               <dd id="review-discount-amount" className="font-semibold">
                 −{formatINR(discountAmount)}
               </dd>
@@ -123,7 +123,7 @@ export default function ReviewClient({
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 flex-none" aria-hidden="true">
               <path d="M20 6 9 17l-5-5" />
             </svg>
-            {discountPercent}% discount applied — you save {formatINR(discountAmount)}
+            {discountLabel} applied — you save {formatINR(discountAmount)}
           </p>
         )}
 

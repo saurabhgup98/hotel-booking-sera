@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   // Today's checkout discount is looked up here, server-side, rather than
   // taken from the review page — the browser never decides the price.
   const offer = await getTodaysOffer();
-  const { discountAmount, payable: totalAmount } = applyTodaysOffer(originalAmount, offer);
+  const { discountAmount, payable: totalAmount, label } = applyTodaysOffer(originalAmount, offer);
 
   const booking = await Booking.create({
     userId: session.userId,
@@ -73,7 +73,8 @@ export async function POST(request: Request) {
     nights,
     totalAmount,
     originalAmount,
-    discountPercent: discountAmount > 0 ? offer?.discountPercent : undefined,
+    discountPercent: discountAmount > 0 && offer.type === "percent" ? offer.value : undefined,
+    discountLabel: label ?? undefined,
     discountAmount,
     status: "pending_payment",
     paymentResult: "pending",

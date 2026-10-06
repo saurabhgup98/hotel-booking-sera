@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import Hotel from "@/models/Hotel";
-import { FALLBACK_HOTEL_IMAGE } from "@/lib/constants";
+import { DEFAULT_PROPERTY_TYPE, FALLBACK_HOTEL_IMAGE } from "@/lib/constants";
 import HotelDetailClient from "./HotelDetailClient";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +43,13 @@ export default async function HotelDetailPage({ params }: { params: { hotelId: s
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold tracking-[0.2em] text-sera-brass">{hotel.city.toUpperCase()}</p>
+          <p className="text-xs font-semibold tracking-[0.2em] text-sera-brass">
+            <span id="hotel-property-type" data-property-type={hotel.propertyType ?? DEFAULT_PROPERTY_TYPE}>
+              {(hotel.propertyType ?? DEFAULT_PROPERTY_TYPE).toUpperCase()}
+            </span>
+            {" · "}
+            {hotel.city.toUpperCase()}
+          </p>
           <h1 className="mt-1 font-display text-4xl leading-tight text-sera-ink sm:text-5xl">{hotel.name}</h1>
           {hotel.address && (
             <p id="hotel-address" className="mt-2 flex items-center gap-1.5 text-sm text-sera-muted">

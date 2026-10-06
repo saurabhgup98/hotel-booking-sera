@@ -1,4 +1,5 @@
 import { Schema, model, models } from "mongoose";
+import { DEFAULT_PROPERTY_TYPE, PROPERTY_TYPES } from "../lib/constants";
 
 const roomTypeSchema = new Schema(
   {
@@ -24,6 +25,7 @@ const hotelSchema = new Schema(
   {
     name: { type: String, required: true },
     city: { type: String, required: true },
+    propertyType: { type: String, enum: [...PROPERTY_TYPES], default: DEFAULT_PROPERTY_TYPE },
     description: { type: String, default: "" },
     address: { type: String, default: "" },
     // First image is the cover (home card + gallery hero).

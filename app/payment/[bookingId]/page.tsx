@@ -60,7 +60,7 @@ export default async function PaymentPage({ params }: { params: { bookingId: str
                 <span className="font-semibold text-[#9FE0BC]">
                   {booking.couponCode
                     ? `${booking.couponCode} saved you ${formatINR(booking.discountAmount)}`
-                    : `${booking.discountPercent}% off · you save ${formatINR(booking.discountAmount)}`}
+                    : `${booking.discountLabel ?? `${booking.discountPercent}% off`} · you save ${formatINR(booking.discountAmount)}`}
                 </span>
               </p>
             )}
