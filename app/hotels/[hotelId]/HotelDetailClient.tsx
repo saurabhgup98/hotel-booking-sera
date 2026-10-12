@@ -6,6 +6,7 @@ import {
   FALLBACK_HOTEL_IMAGE,
   FILTERS_UPDATED_EVENT,
   HOME_FILTERS_STORAGE_KEY,
+  OFFER_WHATSAPP_ENABLED,
   ROOM_TYPE_IMAGES,
   announceStayDates,
   formatINR,
@@ -97,7 +98,8 @@ export default function HotelDetailClient({ hotel, children }: { hotel: HotelPla
     // The visitor's first room "Book Now" of the day shows this popup and
     // asks APTI (through our server) to send today's offer on WhatsApp.
     // Later clicks that day go straight to review, so no second message.
-    const currentLead = readOfferLead();
+    // With OFFER_WHATSAPP_ENABLED off, every click goes straight to review.
+    const currentLead = OFFER_WHATSAPP_ENABLED ? readOfferLead() : null;
     if (currentLead && !couponSentToday(currentLead)) {
       updateOfferLead({ couponSentOn: todayISO() });
       sendOfferWhatsapp(currentLead.name);

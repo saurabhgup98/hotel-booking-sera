@@ -9,6 +9,8 @@ import { discountOn, formatDiscount, type Discount } from "@/lib/discount";
 export type DiscountSettingView = {
   todaysDiscount: Discount;
   actualDiscount: Discount;
+  // null = off (never set, or 0)
+  referralCashback: Discount | null;
   // true while nothing has been saved yet and the defaults below apply
   isDefault: boolean;
   updatedAt: string | null;
@@ -27,6 +29,7 @@ export async function getDiscountSetting(): Promise<DiscountSettingView> {
     return {
       todaysDiscount: DEFAULT_TODAYS_DISCOUNT,
       actualDiscount: DEFAULT_ACTUAL_DISCOUNT,
+      referralCashback: null,
       isDefault: true,
       updatedAt: null,
     };
@@ -34,6 +37,7 @@ export async function getDiscountSetting(): Promise<DiscountSettingView> {
   return {
     todaysDiscount: plain(doc.todaysDiscount),
     actualDiscount: plain(doc.actualDiscount),
+    referralCashback: doc.referralCashback?.value > 0 ? plain(doc.referralCashback) : null,
     isDefault: false,
     updatedAt: doc.updatedAt ? new Date(doc.updatedAt).toISOString() : null,
   };
@@ -42,6 +46,12 @@ export async function getDiscountSetting(): Promise<DiscountSettingView> {
 // The discount checkout applies.
 export async function getTodaysOffer(): Promise<Discount> {
   return (await getDiscountSetting()).actualDiscount;
+}
+
+// Today's referral cashback rule (null = off). Saved on a booking when it's
+// paid, so the referrer gets the rule of that day.
+export async function getReferralCashback(): Promise<Discount | null> {
+  return (await getDiscountSetting()).referralCashback;
 }
 
 export function applyTodaysOffer(amount: number, offer: Discount | null) {

@@ -23,6 +23,9 @@ const discountSettingSchema = new Schema(
     key: { type: String, required: true, unique: true, default: "current" },
     todaysDiscount: { type: discountSchema, required: true },
     actualDiscount: { type: discountSchema, required: true },
+    // Credited to whoever referred a customer when that customer pays their
+    // first booking (APTI does the crediting). Value 0 / unset = off.
+    referralCashback: { type: discountSchema, required: false },
   },
   { timestamps: true }
 );

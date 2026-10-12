@@ -27,21 +27,22 @@ locally, pointed at the Atlas connection string (not as a Vercel build step).
 
 ## Login / OTP
 
-There is no real SMS integration — the OTP is always the fixed value below.
+The OTP is a real SMS, sent and checked by APTI (`POST /sdk/v1/otp/send` and
+`/otp/verify` with `APTI_SECRET_KEY`, see `lib/aptiOtp.ts`) through APTI's
+BulkSMS setup (sender GLBTCS, DLT template SYSTEMOTP, valid 10 minutes). This
+site stores no codes. Resends are 30 seconds apart and at most 5 an hour; 5
+wrong tries need a new code. Without `APTI_TRACK_URL` / `APTI_SECRET_KEY`
+login doesn't work.
+
 The first successful OTP verify for a mobile number also registers it (no
-separate register step, no name required):
-
-- **Fixed OTP:** `123456`
-
-The live UI no longer echoes this value in the "OTP sent" response message —
-`123456` (documented here) is the only value `verify-otp` accepts.
+separate register step, no name required).
 
 ## Offer / WhatsApp flow (demo)
 
 1. First visit to any page except login/payment/booking pages → **10 seconds after
    landing**, a non-dismissable offer modal (name, WhatsApp number, dates, guests,
-   location). The WhatsApp number must be OTP-verified (Send OTP → `123456`, any
-   other OTP fails) — verifying also logs the visitor in (same `/api/auth/*` as `/login`). Submitting it
+   location). The WhatsApp number must be OTP-verified (Send OTP → the code from
+   the SMS) — verifying also logs the visitor in (same `/api/auth/*` as `/login`). Submitting it
    also fills the home-page filter form, then shows a "Creating your offer" loader
    and a **"Today's Offer — Up to X% off"** popup. The form is asked once per browser
    (localStorage `sera_offer_lead`, not cleared on logout — clear it by hand to
@@ -154,7 +155,7 @@ matching it (case-insensitively, trimmed) against two lists in
 | `#offer-lead-form` | offer modal (any page, first visit) | the offer details form |
 | `#offer-name-input` / `#offer-whatsapp-input` | offer modal | guest name / WhatsApp number (not validated) |
 | `#offer-checkin-input` / `#offer-checkout-input` / `#offer-guests-input` / `#offer-location-select` | offer modal | stay details (copied into the home-page filters on submit) |
-| `#offer-send-otp-btn` / `#offer-otp-input` / `#offer-verify-otp-btn` | offer modal | send OTP / OTP field / verify (only `123456` passes) |
+| `#offer-send-otp-btn` / `#offer-otp-input` / `#offer-verify-otp-btn` | offer modal | send OTP / OTP field / verify (the SMS code) |
 | `#offer-otp-verified` / `#offer-otp-error` | offer modal | shown once verified / on a wrong OTP |
 | `#offer-submit-btn` | offer modal | "Curate my offer" submit (requires a verified number) |
 | `#offer-creating-loader` | overlay | "Creating your offer…" loader |

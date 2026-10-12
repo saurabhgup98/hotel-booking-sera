@@ -35,6 +35,17 @@ const bookingSchema = new Schema(
     // discountPercent.
     discountLabel: { type: String },
     discountAmount: { type: Number, default: 0 },
+    // Referral cashback applied on the payment page (APTI holds it, then marks
+    // it used once paid). totalAmount already has it taken off;
+    // amountBeforeCashback is the price after the discount, before cashback.
+    cashbackAmount: { type: Number, default: 0 },
+    amountBeforeCashback: { type: Number },
+    // The brand's referral cashback rule on the day this booking was paid
+    // (APTI credits whoever referred the guest by it). Unset = off.
+    referralCashback: {
+      type: new Schema({ type: { type: String }, value: { type: Number } }, { _id: false }),
+      required: false,
+    },
     status: { type: String, enum: BOOKING_STATUSES, default: "pending_payment" },
     upiId: { type: String },
     paymentResult: { type: String, enum: ["approved", "rejected", "pending"], default: "pending" },

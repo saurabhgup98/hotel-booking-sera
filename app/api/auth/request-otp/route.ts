@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { sendOtp } from "@/lib/aptiOtp";
 
 const schema = z.object({
   mobile: z.string().trim().min(6).max(15).regex(/^\d+$/, "Mobile number must contain digits only"),
@@ -12,8 +13,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid mobile number" }, { status: 400 });
   }
 
-  // Mocked: no real SMS is sent and nothing is written to the DB — the OTP
-  // is a fixed constant checked in /api/auth/verify-otp. The value itself is
-  // intentionally not echoed here — see README.md for the test OTP.
+  // A real SMS: APTI makes the code, texts it and later checks it
+  // (lib/aptiOtp.ts) — nothing is stored here.
+  const result = await sendOtp(parsed.data.mobile);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
+  }
   return NextResponse.json({ message: "OTP sent to your mobile number." });
 }

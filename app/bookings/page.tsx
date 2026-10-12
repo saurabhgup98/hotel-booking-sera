@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import Booking from "@/models/Booking";
 import { verifySession } from "@/lib/auth";
 import { AUTH_COOKIE_NAME, formatINR, formatStayDate } from "@/lib/constants";
+import { getCashbackBalance } from "@/lib/aptiCashback";
 
 export const dynamic = "force-dynamic";
 
@@ -22,11 +23,37 @@ export default async function BookingsPage() {
   }
 
   await connectDB();
-  const bookings = await Booking.find({ userId: session.userId }).sort({ createdAt: -1 }).lean<any[]>();
+  const [bookings, cashback] = await Promise.all([
+    Booking.find({ userId: session.userId }).sort({ createdAt: -1 }).lean<any[]>(),
+    getCashbackBalance(session.mobile),
+  ]);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 pt-10 sm:px-6">
       <h1 className="font-display text-4xl text-sera-ink">My Bookings</h1>
+      {/* Referral cashback from APTI: the balance, and the id that goes in a
+          referral link (shared from the WhatsApp booking message). */}
+      <div
+        id="referral-cashback-card"
+        data-referral-id={cashback.referralId ?? undefined}
+        className="flex flex-col gap-3 rounded-2xl border border-sera-line bg-white p-5 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-sera-muted">Referral cashback</p>
+          <p id="referral-cashback-balance" className="mt-1 text-2xl font-bold text-sera-ink">
+            {formatINR(Math.floor(cashback.available))}
+          </p>
+          {cashback.pending > 0 && (
+            <p className="text-xs text-sera-muted">+ {formatINR(Math.floor(cashback.pending))} after your friends&apos; check-in dates</p>
+          )}
+        </div>
+        <div className="sm:text-right">
+          <p className="text-xs font-semibold uppercase tracking-wider text-sera-muted">Your referral ID</p>
+          <p id="referral-id" className="mt-1 break-all font-mono text-sm text-sera-ink">
+            {cashback.referralId ?? "Being set up — check back in a minute"}
+          </p>
+        </div>
+      </div>
       {bookings.length === 0 && (
         <div className="rounded-3xl border border-sera-line bg-white p-8 text-center">
           <p className="text-sera-muted">No bookings yet.</p>

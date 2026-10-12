@@ -181,6 +181,13 @@ export default function OfferFlow({ cities, signedInMobile }: { cities: string[]
 
   function handleLeadSubmitted(newLead: OfferLead) {
     writeOfferLead(newLead);
+    // Keep the name on the account (the guest is logged in by now) for
+    // APTI's WhatsApp greetings.
+    fetch("/api/auth/me", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newLead.name }),
+    }).catch(() => {});
     // Fill the home-page filters from the lead, keeping anything already
     // there that the lead doesn't have (e.g. the category filter).
     try {
@@ -312,8 +319,8 @@ function LeadForm({
     }
   }
 
-  // Same endpoint as the login page: a correct OTP (FIXED_OTP) also logs the
-  // visitor in, so Pay Now later doesn't ask them to verify again.
+  // Same endpoint as the login page: a correct OTP (the real SMS code) also
+  // logs the visitor in, so Pay Now later doesn't ask them to verify again.
   async function handleVerifyOtp() {
     setOtpError(null);
     if (!otp.trim()) {
@@ -497,7 +504,9 @@ function LeadForm({
                   </button>
                 </div>
               </Field>
-              <p className="mt-1.5 text-xs text-sera-muted">We&apos;ve sent a one-time code to {whatsapp.trim()}.</p>
+              <p id="offer-otp-hint" className="mt-1.5 text-xs text-sera-muted">
+                We&apos;ve sent a one-time code by SMS to {whatsapp.trim()}.
+              </p>
             </div>
           )}
           {otpError && (

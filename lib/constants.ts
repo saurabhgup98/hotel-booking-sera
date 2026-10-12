@@ -1,8 +1,7 @@
-// Mocked OTP for this sandbox site — no real SMS is ever sent. Every request
-// for an OTP "succeeds" and the one true code is always this value.
-export const FIXED_OTP = "123456";
-
 export const AUTH_COOKIE_NAME = "hb_session";
+
+// The brand name used in messages guests share (e.g. the referral message).
+export const SITE_NAME = "Sera Hotels and Resorts";
 
 // localStorage key for the home page's search filters (check-in/out, guests,
 // location). Deliberately persisted client-side rather than in React state
@@ -17,6 +16,17 @@ export const HOME_FILTERS_STORAGE_KEY = "hb_home_filters";
 // Deliberately NOT cleared on logout — it belongs to the visitor/browser, not
 // the login session. See components/OfferFlow.tsx.
 export const OFFER_LEAD_STORAGE_KEY = "sera_offer_lead";
+
+// The "today's offer" WhatsApp on the first room "Book Now" of the day (and
+// its "Check your WhatsApp" popup). Off for now, while the engagement test
+// is tried by hand with a utm_source=whatsapp link — set back to true to
+// send again. Checked by the page and by /api/whatsapp/offer.
+export const OFFER_WHATSAPP_ENABLED = false;
+
+// The booking confirmed + refer-a-friend WhatsApp after payment
+// (hotel_booking_confirmed_refer, lib/aptiEngage.ts). Off for now — it is
+// tested by hand with a generated link; set back to true to send again.
+export const BOOKING_CONFIRMED_WHATSAPP_ENABLED = false;
 
 // Window event fired after the offer form writes HOME_FILTERS_STORAGE_KEY, so
 // an already-mounted home-page filter form re-reads it and shows the values.

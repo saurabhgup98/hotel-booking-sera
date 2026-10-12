@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { formatINR } from "@/lib/constants";
 
@@ -8,6 +8,33 @@ const QR_VALID_SECONDS = 5 * 60;
 // How long the "approve the request in your UPI app" screen shows before the
 // (mock) payment is actually submitted — purely for a realistic demo feel.
 const PROCESSING_DELAY_MS = 2200;
+// Still on this page this long without paying → APTI's cart recovery
+// WhatsApp (sent at most once per customer per day; closing the page sooner
+// asks for it too, through the abandon beacon).
+const CART_RECOVERY_AFTER_MS = 25 * 1000;
+
+// Where APTI's SDK keeps its visitor id (whole browser; cookie fallback) and
+// visit id (this tab) — sent with the abandon beacon so APTI links it to the
+// same browser and visit.
+const SDK_VISITOR_KEY = "aptili.aid";
+const SDK_VISITOR_COOKIE = "_aptili_aid";
+const SDK_SESSION_KEY = "aptili.sid";
+
+function readSdkIds() {
+  let visitorId: string | null = null;
+  let sessionId: string | null = null;
+  try {
+    visitorId = localStorage.getItem(SDK_VISITOR_KEY);
+  } catch {}
+  if (!visitorId) {
+    const cookie = document.cookie.split("; ").find((c) => c.startsWith(`${SDK_VISITOR_COOKIE}=`));
+    visitorId = cookie ? decodeURIComponent(cookie.slice(SDK_VISITOR_COOKIE.length + 1)) : null;
+  }
+  try {
+    sessionId = sessionStorage.getItem(SDK_SESSION_KEY);
+  } catch {}
+  return { visitorId: visitorId || undefined, sessionId: sessionId || undefined };
+}
 
 const UPI_APPS = [
   { name: "Google Pay", short: "G", className: "bg-white text-[#1A73E8] ring-1 ring-sera-line" },
@@ -22,6 +49,38 @@ export default function PaymentForm({ bookingId, amount }: { bookingId: string; 
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(QR_VALID_SECONDS);
+  // Set once the payment went through, so leaving afterwards isn't abandoning.
+  const paidRef = useRef(false);
+  // Set while a payment is being submitted, so the recovery timer holds off.
+  const submittingRef = useRef(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (paidRef.current || submittingRef.current) return;
+      fetch("/api/engage/cart-recovery", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId }),
+      }).catch(() => {});
+    }, CART_RECOVERY_AFTER_MS);
+    return () => clearTimeout(t);
+  }, [bookingId]);
+
+  // Closing this page (tab / browser closed, or a reload) while unpaid tells
+  // APTI the checkout was abandoned. Moving within the site doesn't fire this
+  // (client-side navigation); the server re-checks the booking is still unpaid.
+  useEffect(() => {
+    function handlePageHide() {
+      if (paidRef.current) return;
+      const body = JSON.stringify({ bookingId, ...readSdkIds() });
+      try {
+        if (navigator.sendBeacon?.("/api/track/payment-abandoned", body)) return;
+      } catch {}
+      fetch("/api/track/payment-abandoned", { method: "POST", body, keepalive: true }).catch(() => {});
+    }
+    window.addEventListener("pagehide", handlePageHide);
+    return () => window.removeEventListener("pagehide", handlePageHide);
+  }, [bookingId]);
 
   useEffect(() => {
     if (secondsLeft <= 0) return;
@@ -37,6 +96,7 @@ export default function PaymentForm({ bookingId, amount }: { bookingId: string; 
       return;
     }
     setProcessing(true);
+    submittingRef.current = true;
     try {
       await new Promise((r) => setTimeout(r, PROCESSING_DELAY_MS));
       const res = await fetch(`/api/payments/${bookingId}`, {
@@ -48,13 +108,16 @@ export default function PaymentForm({ bookingId, amount }: { bookingId: string; 
       if (!res.ok) {
         setError(data.error || "Payment failed to process");
         setProcessing(false);
+        submittingRef.current = false;
         return;
       }
+      paidRef.current = true;
       router.push(`/booking/${bookingId}`);
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
       setProcessing(false);
+      submittingRef.current = false;
     }
   }
 
@@ -152,6 +215,7 @@ export default function PaymentForm({ bookingId, amount }: { bookingId: string; 
           </p>
         </div>
       )}
+
     </div>
   );
 }

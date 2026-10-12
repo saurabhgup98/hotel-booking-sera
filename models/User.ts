@@ -3,6 +3,9 @@ import { Schema, model, models } from "mongoose";
 const userSchema = new Schema(
   {
     mobile: { type: String, required: true, unique: true, trim: true },
+    // The name typed into the offer form (latest), used to greet the guest in
+    // APTI's WhatsApp messages. Unset until they fill it in.
+    name: { type: String, trim: true },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );

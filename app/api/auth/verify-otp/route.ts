@@ -3,7 +3,8 @@ import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import { signSession } from "@/lib/auth";
-import { FIXED_OTP, AUTH_COOKIE_NAME } from "@/lib/constants";
+import { AUTH_COOKIE_NAME } from "@/lib/constants";
+import { verifyOtp } from "@/lib/aptiOtp";
 
 const schema = z.object({
   mobile: z.string().trim().min(6).max(15).regex(/^\d+$/, "Mobile number must contain digits only"),
@@ -18,8 +19,10 @@ export async function POST(request: Request) {
   }
 
   const { mobile, otp } = parsed.data;
-  if (otp !== FIXED_OTP) {
-    return NextResponse.json({ error: "Incorrect OTP" }, { status: 400 });
+  // Checked by APTI, which sent it (lib/aptiOtp.ts).
+  const result = await verifyOtp(mobile, otp.trim());
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
   await connectDB();

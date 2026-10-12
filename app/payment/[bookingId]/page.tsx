@@ -9,6 +9,8 @@ import CheckoutSteps from "@/components/CheckoutSteps";
 import SeraLogo from "@/components/SeraLogo";
 import { getPropertyType } from "@/lib/propertyType";
 import PaymentForm from "./PaymentForm";
+import CashbackApply from "./CashbackApply";
+import { getCashbackBalance } from "@/lib/aptiCashback";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +34,8 @@ export default async function PaymentPage({ params }: { params: { bookingId: str
   const originalAmount = booking.originalAmount ?? booking.totalAmount;
   const bookingRef = `SH-${params.bookingId.slice(-6).toUpperCase()}`;
   const propertyType = await getPropertyType(booking.hotelId);
+  // The customer's referral cashback (₹0 until someone they referred books).
+  const cashback = await getCashbackBalance(session.mobile);
 
   return (
     <div
@@ -71,6 +75,12 @@ export default async function PaymentPage({ params }: { params: { bookingId: str
                 </span>
               </p>
             )}
+            <CashbackApply
+              bookingId={params.bookingId}
+              applied={booking.cashbackAmount ?? 0}
+              available={cashback.available}
+              pending={cashback.pending}
+            />
             <p className="flex items-center gap-1.5 pt-6 text-xs text-white/70">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
                 <rect x="4" y="11" width="16" height="10" rx="2" />

@@ -24,6 +24,10 @@ export default async function BookingResultPage({ params }: { params: { bookingI
   const bookingRef = `SH-${params.bookingId.slice(-6).toUpperCase()}`;
   const originalAmount = booking.originalAmount ?? booking.totalAmount;
   const propertyType = await getPropertyType(booking.hotelId);
+  // For APTI's referral cashback: the rule saved when this booking was paid
+  // ("amount" = a fixed ₹ credit) and the check-in day (YYYY-MM-DD).
+  const referralRule = booking.referralCashback?.value > 0 ? booking.referralCashback : null;
+  const checkInDay = new Date(booking.checkIn).toISOString().slice(0, 10);
 
   const rows: { label: string; value: string }[] = [
     { label: "Booking ref", value: bookingRef },
@@ -53,6 +57,9 @@ export default async function BookingResultPage({ params }: { params: { bookingI
           data-booking-id={params.bookingId}
           data-property-name={booking.hotelName}
           data-amount-paid={booking.totalAmount}
+          data-check-in={checkInDay}
+          data-referral-cashback-type={referralRule ? (referralRule.type === "amount" ? "fixed" : "percent") : undefined}
+          data-referral-cashback-value={referralRule?.value}
           className="rounded-3xl border border-sera-line bg-white p-8 text-center shadow-xl shadow-black/5"
         >
           <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sera-mint text-sera-forest">
@@ -107,6 +114,12 @@ export default async function BookingResultPage({ params }: { params: { bookingI
               <dd className="font-semibold">
                 −{formatINR(booking.discountAmount)} <span className="font-normal text-sera-muted line-through">{formatINR(originalAmount)}</span>
               </dd>
+            </div>
+          )}
+          {booking.cashbackAmount > 0 && (
+            <div id="booking-cashback-row" className="flex justify-between gap-4 text-[#1F7A45]">
+              <dt>Referral cashback</dt>
+              <dd className="font-semibold">−{formatINR(booking.cashbackAmount)}</dd>
             </div>
           )}
           <div className="flex justify-between gap-4 border-t border-sera-line pt-3">

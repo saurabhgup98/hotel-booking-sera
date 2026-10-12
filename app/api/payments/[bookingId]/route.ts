@@ -5,7 +5,10 @@ import { cookies } from "next/headers";
 import { connectDB } from "@/lib/db";
 import Booking from "@/models/Booking";
 import { verifySession } from "@/lib/auth";
-import { AUTH_COOKIE_NAME, decidePaymentOutcome } from "@/lib/constants";
+import { AUTH_COOKIE_NAME, BOOKING_CONFIRMED_WHATSAPP_ENABLED, decidePaymentOutcome } from "@/lib/constants";
+import { confirmCashback, releaseCashback } from "@/lib/aptiCashback";
+import { getReferralCashback } from "@/lib/todaysOffer";
+import { guestName, sendBookingConfirmed } from "@/lib/aptiEngage";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +46,28 @@ export async function POST(request: Request, { params }: { params: { bookingId: 
   booking.upiId = parsed.data.upiId;
   booking.paymentResult = outcome;
   booking.status = outcome === "approved" ? "confirmed" : "payment_failed";
+  if (outcome === "approved") {
+    const rule = await getReferralCashback();
+    if (rule) booking.referralCashback = rule;
+  }
   await booking.save();
+
+  // Referral cashback held on this booking: used now it's paid, given back if
+  // not. A failure here doesn't undo the payment (an unconfirmed hold lapses).
+  if (booking.cashbackAmount > 0) {
+    const result = outcome === "approved" ? await confirmCashback(params.bookingId) : await releaseCashback(params.bookingId);
+    if (!result.ok) console.error("[payments] cashback update failed", params.bookingId, result.error);
+  }
+
+  // Booking confirmed + refer-a-friend WhatsApp (APTI sends it once per
+  // booking). Never undoes the payment if it fails. Off for now
+  // (BOOKING_CONFIRMED_WHATSAPP_ENABLED).
+  if (outcome === "approved" && BOOKING_CONFIRMED_WHATSAPP_ENABLED) {
+    const sent = await guestName(session.userId)
+      .then((name) => sendBookingConfirmed(booking, session.mobile, name))
+      .catch((err) => ({ sent: false, reason: String(err) }));
+    if (!sent.sent) console.warn("[payments] booking confirmation WhatsApp not sent", params.bookingId, sent.reason);
+  }
 
   return NextResponse.json({ bookingId: booking._id.toString(), status: booking.status });
 }

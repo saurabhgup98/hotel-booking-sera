@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { verifySession } from "@/lib/auth";
-import { AUTH_COOKIE_NAME } from "@/lib/constants";
+import { AUTH_COOKIE_NAME, OFFER_WHATSAPP_ENABLED } from "@/lib/constants";
 import { formatDiscount } from "@/lib/discount";
 import { getTodaysOffer } from "@/lib/todaysOffer";
 
@@ -16,8 +16,8 @@ import { getTodaysOffer } from "@/lib/todaysOffer";
 // visitor verified with OTP (from the session cookie), never one the browser
 // sends.
 //
-// With APTI_WHATSAPP_SEND_URL unset the call is skipped and the booking flow
-// carries on as normal.
+// With APTI_WHATSAPP_SEND_URL unset, or OFFER_WHATSAPP_ENABLED off, the call
+// is skipped and the booking flow carries on as normal.
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +33,10 @@ function withCountryCode(mobile: string) {
 }
 
 export async function POST(request: Request) {
+  if (!OFFER_WHATSAPP_ENABLED) {
+    return NextResponse.json({ sent: false, reason: "WhatsApp offer is switched off" });
+  }
+
   const token = cookies().get(AUTH_COOKIE_NAME)?.value;
   const session = token ? await verifySession(token) : null;
   if (!session) {

@@ -13,39 +13,60 @@ export default function LoginForm() {
   const [otp, setOtp] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // A real SMS takes a few seconds: block a second click meanwhile.
+  const [busy, setBusy] = useState(false);
 
-  async function handleRequestOtp(e: FormEvent) {
-    e.preventDefault();
+  async function requestOtp() {
     setError(null);
-    const res = await fetch("/api/auth/request-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mobile }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || "Failed to request OTP");
-      return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/auth/request-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobile }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to request OTP");
+        return;
+      }
+      setMessage(data.message);
+      setOtp("");
+      setStep("otp");
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
     }
-    setMessage(data.message);
-    setStep("otp");
+  }
+
+  function handleRequestOtp(e: FormEvent) {
+    e.preventDefault();
+    requestOtp();
   }
 
   async function handleVerifyOtp(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    const res = await fetch("/api/auth/verify-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mobile, otp }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || "Failed to verify OTP");
-      return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobile, otp }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to verify OTP");
+        return;
+      }
+      router.push(next);
+      router.refresh();
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
     }
-    router.push(next);
-    router.refresh();
   }
 
   return (
@@ -72,9 +93,10 @@ export default function LoginForm() {
           <button
             id="login-otp-request"
             type="submit"
-            className="h-12 w-full rounded-xl bg-sera-forest font-semibold text-white hover:bg-sera-forest-dark"
+            disabled={busy}
+            className="h-12 w-full rounded-xl bg-sera-forest font-semibold text-white hover:bg-sera-forest-dark disabled:opacity-60"
           >
-            Send OTP
+            {busy ? "Sending…" : "Send OTP"}
           </button>
         </form>
       ) : (
@@ -82,16 +104,45 @@ export default function LoginForm() {
           <input
             id="login-otp-input"
             type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
             required
-            placeholder="Enter OTP"
+            placeholder="Enter 6-digit OTP"
             value={otp}
-            onChange={(e) => setOtp(e.target.value)}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
             className="h-12 w-full rounded-xl border border-[#D9D1C2] px-3.5 text-[15px] focus:border-sera-forest focus:outline-none focus:ring-2 focus:ring-sera-forest/15"
           />
+          <p id="login-otp-hint" className="text-xs text-sera-muted">
+            Sent by SMS to <strong className="text-sera-ink">{mobile}</strong>.{" "}
+            <button
+              id="login-otp-resend"
+              type="button"
+              disabled={busy}
+              onClick={requestOtp}
+              className="font-semibold text-sera-forest underline disabled:opacity-60"
+            >
+              Resend OTP
+            </button>{" "}
+            ·{" "}
+            <button
+              id="login-change-number"
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setStep("mobile");
+                setMessage(null);
+                setError(null);
+              }}
+              className="font-semibold text-sera-forest underline disabled:opacity-60"
+            >
+              Change number
+            </button>
+          </p>
           <button
             id="login-otp-submit"
             type="submit"
-            className="h-12 w-full rounded-xl bg-sera-forest font-semibold text-white hover:bg-sera-forest-dark"
+            disabled={busy}
+            className="h-12 w-full rounded-xl bg-sera-forest font-semibold text-white hover:bg-sera-forest-dark disabled:opacity-60"
           >
             Verify &amp; Continue
           </button>
