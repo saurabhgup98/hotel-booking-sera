@@ -3,7 +3,7 @@ import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import { signSession } from "@/lib/auth";
-import { AUTH_COOKIE_NAME } from "@/lib/constants";
+import { AUTH_COOKIE_NAME, TEST_OTP } from "@/lib/constants";
 import { verifyOtp } from "@/lib/aptiOtp";
 
 const schema = z.object({
@@ -19,10 +19,13 @@ export async function POST(request: Request) {
   }
 
   const { mobile, otp } = parsed.data;
-  // Checked by APTI, which sent it (lib/aptiOtp.ts).
-  const result = await verifyOtp(mobile, otp.trim());
-  if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: result.status });
+  // Checked by APTI, which sent it (lib/aptiOtp.ts) — except the test code
+  // TEST_OTP, accepted for any number (for numbers that get no SMS).
+  if (otp.trim() !== TEST_OTP) {
+    const result = await verifyOtp(mobile, otp.trim());
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
   }
 
   await connectDB();

@@ -27,6 +27,10 @@ export const OFFER_WHATSAPP_ENABLED = false;
 // (hotel_booking_confirmed_refer, lib/aptiEngage.ts). Set to false to stop it.
 export const BOOKING_CONFIRMED_WHATSAPP_ENABLED = true;
 
+// Test login code: always accepted, for numbers that can't receive the real
+// SMS (every other code is checked by APTI). Remove it to require real SMS only.
+export const TEST_OTP = "654321";
+
 // Window event fired after the offer form writes HOME_FILTERS_STORAGE_KEY, so
 // an already-mounted home-page filter form re-reads it and shows the values.
 export const FILTERS_UPDATED_EVENT = "sera:filters-updated";

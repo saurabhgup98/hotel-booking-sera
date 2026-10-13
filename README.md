@@ -34,6 +34,9 @@ site stores no codes. Resends are 30 seconds apart and at most 5 an hour; 5
 wrong tries need a new code. Without `APTI_TRACK_URL` / `APTI_SECRET_KEY`
 login doesn't work.
 
+**Test code `654321`** (`TEST_OTP` in `lib/constants.ts`) is also accepted for any number,
+for test numbers that get no SMS. Send OTP still asks APTI to text the number first.
+
 The first successful OTP verify for a mobile number also registers it (no
 separate register step, no name required).
 
