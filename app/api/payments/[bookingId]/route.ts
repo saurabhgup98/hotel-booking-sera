@@ -60,8 +60,8 @@ export async function POST(request: Request, { params }: { params: { bookingId: 
   }
 
   // Booking confirmed + refer-a-friend WhatsApp (APTI sends it once per
-  // booking). Never undoes the payment if it fails. Off for now
-  // (BOOKING_CONFIRMED_WHATSAPP_ENABLED).
+  // booking). Never undoes the payment if it fails. Switch:
+  // BOOKING_CONFIRMED_WHATSAPP_ENABLED.
   if (outcome === "approved" && BOOKING_CONFIRMED_WHATSAPP_ENABLED) {
     const sent = await guestName(session.userId)
       .then((name) => sendBookingConfirmed(booking, session.mobile, name))

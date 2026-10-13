@@ -24,9 +24,8 @@ export const OFFER_LEAD_STORAGE_KEY = "sera_offer_lead";
 export const OFFER_WHATSAPP_ENABLED = false;
 
 // The booking confirmed + refer-a-friend WhatsApp after payment
-// (hotel_booking_confirmed_refer, lib/aptiEngage.ts). Off for now — it is
-// tested by hand with a generated link; set back to true to send again.
-export const BOOKING_CONFIRMED_WHATSAPP_ENABLED = false;
+// (hotel_booking_confirmed_refer, lib/aptiEngage.ts). Set to false to stop it.
+export const BOOKING_CONFIRMED_WHATSAPP_ENABLED = true;
 
 // Window event fired after the offer form writes HOME_FILTERS_STORAGE_KEY, so
 // an already-mounted home-page filter form re-reads it and shows the values.

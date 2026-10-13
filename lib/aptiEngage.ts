@@ -13,8 +13,8 @@ import { getTodaysOffer } from "@/lib/todaysOffer";
 //   cart recovery      payment page open 25 s without paying, or closed
 //                      (hotel_cart_recovery: link back to the payment page)
 //   booking confirmed  just paid (hotel_booking_confirmed_refer: book again /
-//                      refer a friend from /refer/<referral id>) — off for
-//                      now (BOOKING_CONFIRMED_WHATSAPP_ENABLED)
+//                      refer a friend from /refer/<referral id>) — switch:
+//                      BOOKING_CONFIRMED_WHATSAPP_ENABLED
 // Both greet the guest by the name from the offer form, when they gave one.
 //
 // With APTI_TRACK_URL or APTI_SECRET_KEY unset both are skipped.
