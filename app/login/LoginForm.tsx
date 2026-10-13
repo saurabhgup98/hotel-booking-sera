@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { TEST_OTP } from "@/lib/constants";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -138,6 +139,15 @@ export default function LoginForm() {
               Change number
             </button>
           </p>
+          <div id="login-test-otp-note" className="rounded-xl bg-sera-sand px-3.5 py-2.5 text-xs leading-relaxed text-sera-muted">
+            <p>
+              <strong className="text-sera-ink">Real number?</strong> Wait for the 6-digit code by SMS. It can take up to a minute.
+            </p>
+            <p className="mt-1">
+              <strong className="text-sera-ink">Testing with a number that can&apos;t receive SMS?</strong> Enter{" "}
+              <strong className="font-mono text-sera-ink">{TEST_OTP}</strong> instead.
+            </p>
+          </div>
           <button
             id="login-otp-submit"
             type="submit"

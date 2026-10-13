@@ -10,11 +10,21 @@ import SeraLogo from "@/components/SeraLogo";
 import { getPropertyType } from "@/lib/propertyType";
 import PaymentForm from "./PaymentForm";
 import CashbackApply from "./CashbackApply";
+import WhatsappReturnNotice from "./WhatsappReturnNotice";
 import { getCashbackBalance } from "@/lib/aptiCashback";
 
 export const dynamic = "force-dynamic";
 
-export default async function PaymentPage({ params }: { params: { bookingId: string } }) {
+// APTI's cart recovery WhatsApp links here with these tags (utm_campaign).
+const CART_RECOVERY_CAMPAIGN = "cart_recovery";
+
+export default async function PaymentPage({
+  params,
+  searchParams,
+}: {
+  params: { bookingId: string };
+  searchParams: { utm_campaign?: string | string[] };
+}) {
   const token = cookies().get(AUTH_COOKIE_NAME)?.value;
   const session = token ? await verifySession(token) : null;
   // Defense in depth — middleware.ts already redirects unauthenticated
@@ -45,6 +55,7 @@ export default async function PaymentPage({ params }: { params: { bookingId: str
       className="mx-auto max-w-4xl space-y-8 px-4 pt-8 sm:px-6"
     >
       <CheckoutSteps current={3} />
+      {searchParams.utm_campaign === CART_RECOVERY_CAMPAIGN && <WhatsappReturnNotice bookingId={params.bookingId} />}
 
       <div className="grid overflow-hidden rounded-3xl border border-sera-line bg-white shadow-2xl shadow-black/10 md:grid-cols-[300px_1fr]">
         <div className="flex flex-col justify-between gap-8 bg-sera-forest-dark p-7 text-white">

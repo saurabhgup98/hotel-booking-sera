@@ -6,7 +6,7 @@ import { connectDB } from "@/lib/db";
 import Booking from "@/models/Booking";
 import { verifySession } from "@/lib/auth";
 import { AUTH_COOKIE_NAME, BOOKING_CONFIRMED_WHATSAPP_ENABLED, decidePaymentOutcome } from "@/lib/constants";
-import { confirmCashback, releaseCashback } from "@/lib/aptiCashback";
+import { confirmCashback, releaseCashback, reportPayment } from "@/lib/aptiCashback";
 import { getReferralCashback } from "@/lib/todaysOffer";
 import { guestName, sendBookingConfirmed } from "@/lib/aptiEngage";
 
@@ -57,6 +57,14 @@ export async function POST(request: Request, { params }: { params: { bookingId: 
   if (booking.cashbackAmount > 0) {
     const result = outcome === "approved" ? await confirmCashback(params.bookingId) : await releaseCashback(params.bookingId);
     if (!result.ok) console.error("[payments] cashback update failed", params.bookingId, result.error);
+  }
+
+  // Tell APTI about the payment (for its Referral payments report; it keeps
+  // only referral ones). After the cashback confirm above, since APTI reads
+  // the cashback used from it. Never undoes the payment if it fails.
+  if (outcome === "approved") {
+    const reported = await reportPayment(session.mobile, params.bookingId, booking.totalAmount);
+    if (!reported.ok) console.warn("[payments] payment not reported to APTI", params.bookingId, reported.error);
   }
 
   // Booking confirmed + refer-a-friend WhatsApp (APTI sends it once per

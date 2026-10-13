@@ -81,3 +81,12 @@ export function confirmCashback(bookingId: string) {
 export function releaseCashback(bookingId: string) {
   return call<{ amount: number; status: string }>("release", { booking_id: bookingId });
 }
+
+/**
+ * A paid booking, for APTI's Referral payments report. APTI keeps it only if
+ * the customer came through a referral link or used referral cashback on it
+ * (it reads the cashback used from its own records, so call after confirm).
+ */
+export function reportPayment(mobile: string, bookingId: string, amountPaid: number) {
+  return call<{ recorded: boolean; reason?: string }>("payment", { mobile, booking_id: bookingId, amount_paid: amountPaid });
+}
