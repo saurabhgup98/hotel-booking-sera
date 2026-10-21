@@ -17,6 +17,10 @@ export const HOME_FILTERS_STORAGE_KEY = "hb_home_filters";
 // the login session. See components/OfferFlow.tsx.
 export const OFFER_LEAD_STORAGE_KEY = "sera_offer_lead";
 
+// localStorage key holding the local date (YYYY-MM-DD) the visitor last closed
+// the offer form with ✕ — it stays away for the rest of that day.
+export const OFFER_FORM_CLOSED_STORAGE_KEY = "sera_offer_form_closed_on";
+
 // The "today's offer" WhatsApp on the first room "Book Now" of the day (and
 // its "Check your WhatsApp" popup). Off for now, while the engagement test
 // is tried by hand with a utm_source=whatsapp link — set back to true to

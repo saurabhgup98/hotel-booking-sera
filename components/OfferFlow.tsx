@@ -13,6 +13,8 @@ import {
 } from "@/lib/constants";
 import { formatDiscount, type Discount } from "@/lib/discount";
 import {
+  markOfferFormClosedToday,
+  offerFormClosedToday,
   offerSeenToday,
   readOfferLead,
   todayISO,
@@ -35,7 +37,7 @@ export type FormVariant = "full" | "contact" | "stay" | "nameOnly";
 
 // Pages where interrupting the visitor with the offer makes no sense (mid
 // login/payment, or looking at a booking they already made).
-const EXCLUDED_PREFIXES = ["/login", "/payment", "/booking", "/bookings"];
+const EXCLUDED_PREFIXES = ["/login", "/payment", "/booking", "/bookings", "/calculator"];
 
 const CREATING_STEPS = ["Checking availability for your dates", "Comparing rates across our hotels", "Curating your offer"];
 const CREATING_DURATION_MS = 2800;
@@ -64,7 +66,8 @@ function readSavedStay(): StayDetails | null {
  * The landing-page offer flow. The form is asked once per browser; the
  * "Today's Offer" popup comes back once a day (first visit of the day),
  * showing the brand's current "up to" discount from /api/discount.
- *   1. "form"     — non-dismissable modal; when it opens and which fields it
+ *   1. "form"     — modal; its ✕ closes it for the rest of the day (asked
+ *                   again tomorrow). When it opens and which fields it
  *                   asks for depend on what the visitor has done (see
  *                   FormVariant and the delays above). Verifying the OTP also
  *                   logs the visitor in (same /api/auth/verify-otp as the
@@ -73,7 +76,7 @@ function readSavedStay(): StayDetails | null {
  *   2. "creating" — short "creating your offer" loader.
  *   3. "offer"    — "Today's Offer" popup ("Up to X% off"); its Book Now
  *                   closes the flow for today and takes the visitor to the
- *                   hotel list / rooms.
+ *                   hotel list / rooms; its ✕ also counts as seen today.
  * The site itself never sends WhatsApp messages — APTI does, off the SDK
  * events these screens (and their stable ids) produce.
  */
@@ -152,7 +155,7 @@ export default function OfferFlow({ cities, signedInMobile }: { cities: string[]
     const saved = readOfferLead();
     setLead(saved);
     if (!saved) {
-      if (formDue) {
+      if (formDue && !offerFormClosedToday()) {
         const datesKnown = hasDates(stay);
         setVariant(signedInMobile ? (datesKnown ? "nameOnly" : "stay") : datesKnown ? "contact" : "full");
         setStage("form");
@@ -219,6 +222,16 @@ export default function OfferFlow({ cities, signedInMobile }: { cities: string[]
     }, 60);
   }
 
+  function handleFormClosed() {
+    markOfferFormClosedToday();
+    setStage(null);
+  }
+
+  function handleOfferClosed() {
+    updateOfferLead({ offerSeenOn: todayISO() });
+    setStage(null);
+  }
+
   if (!stage) return null;
 
   return (
@@ -230,11 +243,30 @@ export default function OfferFlow({ cities, signedInMobile }: { cities: string[]
           signedInMobile={signedInMobile}
           knownStay={stay}
           onSubmitted={handleLeadSubmitted}
+          onClose={handleFormClosed}
         />
       )}
       {stage === "creating" && <CreatingOffer />}
-      {stage === "offer" && lead && <OfferPopup lead={lead} upTo={upTo} onBookNow={handleBookNow} />}
+      {stage === "offer" && lead && (
+        <OfferPopup lead={lead} upTo={upTo} onBookNow={handleBookNow} onClose={handleOfferClosed} />
+      )}
     </div>
+  );
+}
+
+function CloseButton({ id, onClick, className }: { id: string; onClick: () => void; className: string }) {
+  return (
+    <button
+      id={id}
+      type="button"
+      aria-label="Close"
+      onClick={onClick}
+      className={`absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full ${className}`}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
+        <path d="M18 6 6 18M6 6l12 12" />
+      </svg>
+    </button>
   );
 }
 
@@ -265,12 +297,14 @@ function LeadForm({
   signedInMobile,
   knownStay,
   onSubmitted,
+  onClose,
 }: {
   variant: FormVariant;
   cities: string[];
   signedInMobile: string | null;
   knownStay: StayDetails | null;
   onSubmitted: (lead: OfferLead) => void;
+  onClose: () => void;
 }) {
   // Logged-in visitors already verified their number with the login OTP.
   const asksContact = variant === "full" || variant === "contact";
@@ -389,8 +423,9 @@ function LeadForm({
       role="dialog"
       aria-modal="true"
       aria-labelledby="offer-form-title"
-      className="grid max-h-[94vh] w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl animate-pop-in md:grid-cols-[280px_1fr]"
+      className="relative grid max-h-[94vh] w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl animate-pop-in md:grid-cols-[280px_1fr]"
     >
+      <CloseButton id="offer-form-close-btn" onClick={onClose} className="bg-white/90 text-sera-muted hover:bg-sera-sand hover:text-sera-ink" />
       <div className="relative hidden md:block">
         <img src={HERO_IMAGE} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-sera-forest-dark/90 via-sera-forest-dark/30 to-transparent" />
@@ -643,7 +678,17 @@ function CreatingOffer() {
   );
 }
 
-function OfferPopup({ lead, upTo, onBookNow }: { lead: OfferLead; upTo: Discount | null; onBookNow: () => void }) {
+function OfferPopup({
+  lead,
+  upTo,
+  onBookNow,
+  onClose,
+}: {
+  lead: OfferLead;
+  upTo: Discount | null;
+  onBookNow: () => void;
+  onClose: () => void;
+}) {
   const firstName = lead.name.split(" ")[0];
   // On a later day the saved stay dates may already be over — leave them out then.
   const datesStillAhead = lead.checkOut >= todayISO();
@@ -656,6 +701,7 @@ function OfferPopup({ lead, upTo, onBookNow }: { lead: OfferLead; upTo: Discount
       className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl animate-pop-in"
     >
       <div className="relative bg-sera-forest px-7 pb-7 pt-8 text-center text-white">
+        <CloseButton id="offer-popup-close-btn" onClick={onClose} className="text-white/80 hover:bg-white/15 hover:text-white" />
         <p className="text-xs font-semibold tracking-[0.22em] text-white/75">TODAY&apos;S OFFER</p>
         {upTo ? (
           <p id="offer-popup-title" className="mt-2 font-display leading-none">

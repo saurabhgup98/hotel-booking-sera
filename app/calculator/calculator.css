@@ -1,0 +1,217 @@
+/* Apti's own look for the revenue calculator, copied from the Apti
+   calculator artifact. Every rule sits under .apti-calc so none of it
+   reaches the Sera pages. Same calculator as sera-admin's
+   /revenue-calculator — keep the two in step. */
+.apti-calc {
+  --teal: #0f4c5c;
+  --teal-deep: #0a3540;
+  --marigold: #f2a93b;
+  --marigold-deep: #d98e1e;
+  --cream: #fbf7ef;
+  --paper: #ffffff;
+  --ink: #16292e;
+  --ink-soft: #5c7278;
+  --line: #e5e0d3;
+  --tint: #edf3f1;
+  --good: #2f8f6b;
+  --bad: #c8583b;
+
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--calc-font-sans), sans-serif;
+}
+.apti-calc *, .apti-calc *::before, .apti-calc *::after { box-sizing: border-box; }
+
+.apti-calc .wrap { max-width: 1180px; margin: 0 auto; padding: 36px 24px 80px; }
+
+.apti-calc header { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+.apti-calc .mark {
+  width: 34px; height: 34px; border-radius: 9px; background: var(--marigold);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--calc-font-display), serif; font-weight: 700; color: var(--teal-deep); font-size: 17px;
+}
+.apti-calc .brand { font-size: 14px; font-weight: 600; color: var(--teal-deep); letter-spacing: 0.2px; }
+
+.apti-calc h1 {
+  font-family: var(--calc-font-display), serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 34px;
+  line-height: 1.15;
+  color: var(--teal-deep);
+  margin: 18px 0 8px;
+  max-width: 620px;
+}
+.apti-calc .lede {
+  font-size: 14.5px;
+  color: var(--ink-soft);
+  max-width: 560px;
+  line-height: 1.6;
+  margin: 0 0 30px;
+}
+
+.apti-calc .grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+@media (max-width: 880px) {
+  .apti-calc .grid { grid-template-columns: 1fr; }
+}
+
+.apti-calc .panel {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 26px 24px;
+}
+
+.apti-calc .step { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; }
+.apti-calc .step:not(:first-child) { margin-top: 30px; }
+.apti-calc .step-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--teal); color: var(--paper);
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.apti-calc .section-title {
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--calc-font-display), serif;
+  color: var(--teal-deep);
+  margin: 0;
+}
+.apti-calc .section-sub {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 8px 0 18px 32px;
+  line-height: 1.5;
+}
+.apti-calc .body-indent { margin-left: 32px; }
+
+.apti-calc .row { margin-bottom: 20px; }
+.apti-calc .row-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.apti-calc .row-head label { font-size: 13px; font-weight: 600; color: var(--ink); }
+.apti-calc .row-head .hint { font-weight: 500; color: var(--ink-soft); }
+.apti-calc .row-head .val {
+  font-size: 13.5px; font-weight: 700; color: var(--teal-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+.apti-calc input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 5px; border-radius: 3px;
+  background: var(--line);
+  outline: none;
+}
+.apti-calc input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--teal);
+  border: 3px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--teal);
+  cursor: pointer;
+  margin-top: -1px;
+}
+.apti-calc input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--teal);
+  border: 3px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--teal);
+  cursor: pointer;
+}
+
+.apti-calc .numfield {
+  display: flex; align-items: center;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 0 12px;
+  height: 46px;
+}
+.apti-calc .numfield .prefix { font-size: 14px; color: var(--ink-soft); margin-right: 6px; font-weight: 600; }
+.apti-calc .numfield input[type="number"] {
+  border: none; outline: none; width: 100%;
+  font-family: var(--calc-font-sans), sans-serif; font-size: 15px; font-weight: 600; color: var(--ink);
+  background: transparent;
+}
+
+.apti-calc .occupancy-readout {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--tint);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 4px 0 20px;
+}
+.apti-calc .occupancy-readout .lbl { font-size: 12px; color: var(--ink-soft); font-weight: 600; }
+.apti-calc .occupancy-readout .lbl small { display: block; font-weight: 400; font-size: 10.5px; margin-top: 2px; }
+.apti-calc .occupancy-readout .num { font-family: var(--calc-font-display), serif; font-weight: 700; font-size: 20px; color: var(--teal-deep); }
+.apti-calc .occupancy-readout .num.warn { color: var(--bad); }
+
+.apti-calc hr.sep { border: none; border-top: 1px solid var(--line); margin: 26px 0 0; }
+
+/* ---- Results panel ---- */
+/* Clears the site's sticky 72px header. */
+.apti-calc .results { position: sticky; top: 96px; }
+.apti-calc .toggle { display: flex; background: var(--tint); border-radius: 10px; padding: 3px; margin-bottom: 20px; }
+.apti-calc .toggle button {
+  flex: 1; border: none; background: transparent; padding: 9px 0;
+  font-family: var(--calc-font-sans), sans-serif; font-size: 12.5px; font-weight: 600; color: var(--ink-soft);
+  border-radius: 8px; cursor: pointer;
+}
+.apti-calc .toggle button.active { background: var(--paper); color: var(--teal-deep); box-shadow: 0 2px 6px rgba(15, 76, 92, 0.14); }
+
+.apti-calc .headline-metric {
+  background: linear-gradient(160deg, var(--teal) 0%, var(--teal-deep) 100%);
+  border-radius: 14px;
+  padding: 22px 20px;
+  color: var(--paper);
+  margin-bottom: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.apti-calc .headline-metric::before {
+  content: ""; position: absolute; width: 180px; height: 180px; border-radius: 50%;
+  background: rgba(242, 169, 59, 0.14); top: -90px; right: -50px;
+}
+.apti-calc .headline-metric .lbl { font-size: 11.5px; color: rgba(255, 255, 255, 0.72); font-weight: 600; position: relative; z-index: 1; }
+.apti-calc .headline-metric .amt {
+  font-family: var(--calc-font-display), serif; font-weight: 700; font-size: 32px; margin: 6px 0 4px;
+  position: relative; z-index: 1;
+}
+.apti-calc .headline-metric .sub { font-size: 12px; color: rgba(255, 255, 255, 0.68); position: relative; z-index: 1; }
+.apti-calc .headline-metric .sub b { color: var(--marigold); font-weight: 700; }
+
+.apti-calc .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+.apti-calc .card { border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.apti-calc .card .clbl { font-size: 10.5px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; }
+.apti-calc .card .cval { font-family: var(--calc-font-display), serif; font-weight: 600; font-size: 19px; color: var(--ink); }
+.apti-calc .card.now .cval { color: var(--ink-soft); }
+.apti-calc .card.after { border-color: var(--marigold); background: #fffaf0; }
+.apti-calc .card.after .cval { color: var(--teal-deep); }
+
+.apti-calc .bar-row { margin-bottom: 14px; }
+.apti-calc .bar-row .brow-top { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-soft); margin-bottom: 5px; }
+.apti-calc .bar-track { height: 9px; border-radius: 5px; background: var(--tint); overflow: hidden; }
+.apti-calc .bar-fill { height: 100%; border-radius: 5px; background: var(--teal); }
+.apti-calc .bar-fill.marigold { background: var(--marigold); }
+
+.apti-calc .subhead { font-size: 11px; font-weight: 700; color: var(--teal); margin: 20px 0 6px; }
+
+.apti-calc .linelist { margin-top: 6px; }
+.apti-calc .lineitem {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 0; border-bottom: 1px dashed var(--line);
+  font-size: 12.5px;
+}
+.apti-calc .lineitem:last-child { border-bottom: none; }
+.apti-calc .lineitem .name { color: var(--ink-soft); }
+.apti-calc .lineitem .amt { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.apti-calc .lineitem .amt.pos { color: var(--good); }
+.apti-calc .lineitem .amt.neg { color: var(--bad); }
+
+.apti-calc .footnote {
+  margin-top: 18px; font-size: 11px; color: var(--ink-soft); line-height: 1.6;
+  padding-top: 14px; border-top: 1px solid var(--line);
+}

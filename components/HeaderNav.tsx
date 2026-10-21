@@ -29,12 +29,14 @@ function NavItem({ href, label, id, hideOnMobile = false }: { href: string; labe
 
 export default function HeaderNav({ session }: { session: Session }) {
   return (
-    <nav className="flex items-center gap-4 sm:gap-7">
+    <nav className="flex items-center gap-3 sm:gap-7">
       <NavItem href="/" label="Home" id="nav-home-link" hideOnMobile />
       {session ? (
         <>
           <NavItem href="/bookings" label="My Bookings" id="nav-bookings-link" />
-          <div className="flex items-center gap-2 rounded-full border border-sera-line bg-sera-cream py-1 pl-1 pr-3 sm:pr-4">
+          <NavItem href="/calculator" label="Calculator" id="nav-calculator-link" />
+          {/* Hidden on phones so the links fit; still in the page for the SDK. */}
+          <div className="hidden items-center gap-2 rounded-full border border-sera-line bg-sera-cream py-1 pl-1 pr-3 sm:flex sm:pr-4">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sera-mint text-sera-forest">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
                 <rect x="6" y="2" width="12" height="20" rx="2.5" />
@@ -51,12 +53,15 @@ export default function HeaderNav({ session }: { session: Session }) {
           <LogoutButton />
         </>
       ) : (
-        <Link
+        <>
+          <NavItem href="/calculator" label="Calculator" id="nav-calculator-link" />
+          <Link
           href="/login"
           className="rounded-xl bg-sera-forest px-5 py-2.5 text-sm font-semibold text-white hover:bg-sera-forest-dark"
         >
-          Login
-        </Link>
+            Login
+          </Link>
+        </>
       )}
     </nav>
   );

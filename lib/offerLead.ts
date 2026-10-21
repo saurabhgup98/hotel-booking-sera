@@ -1,4 +1,4 @@
-import { OFFER_LEAD_STORAGE_KEY } from "@/lib/constants";
+import { OFFER_FORM_CLOSED_STORAGE_KEY, OFFER_LEAD_STORAGE_KEY } from "@/lib/constants";
 
 // The visitor's answers to the landing-page offer form, plus the two
 // once-per-day markers described on OFFER_LEAD_STORAGE_KEY. Client-only
@@ -47,3 +47,18 @@ export function todayISO() {
 
 export const offerSeenToday = (lead: OfferLead | null) => lead?.offerSeenOn === todayISO();
 export const couponSentToday = (lead: OfferLead | null) => lead?.couponSentOn === todayISO();
+
+// The offer form's ✕: closed for the rest of today, asked again tomorrow.
+export function markOfferFormClosedToday() {
+  try {
+    localStorage.setItem(OFFER_FORM_CLOSED_STORAGE_KEY, todayISO());
+  } catch {}
+}
+
+export function offerFormClosedToday() {
+  try {
+    return localStorage.getItem(OFFER_FORM_CLOSED_STORAGE_KEY) === todayISO();
+  } catch {
+    return false;
+  }
+}
